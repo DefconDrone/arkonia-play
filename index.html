@@ -858,7 +858,7 @@ function arenaMove(c,dt){
   c.vx*=Math.pow(fric,dt);c.vy*=Math.pow(fric,dt);
   const pad=c.radius+6;
   c.x=Math.max(pad,Math.min(W-pad,c.x));
-  c.y=Math.max(pad+44,Math.min(H-pad,c.y));
+  c.y=Math.max(pad+60,Math.min(H-pad,c.y));
   for(const p of A.pillars){
     const dx=c.x-p.x,dy=c.y-p.y,d=Math.hypot(dx,dy),min=p.r+c.radius;
     if(d<min&&d>0){c.x=p.x+dx/d*min;c.y=p.y+dy/d*min;}
@@ -892,7 +892,7 @@ function arenaMove(c,dt){
       c.blinkTimer=2.2;
       const bd=110,ang=Math.atan2(c.vy,c.vx);
       c.x=Math.max(pad,Math.min(W-pad,c.x+Math.cos(ang)*bd));
-      c.y=Math.max(pad+44,Math.min(H-pad,c.y+Math.sin(ang)*bd));
+      c.y=Math.max(pad+60,Math.min(H-pad,c.y+Math.sin(ang)*bd));
       for(const p of A.pillars){
         const dx=c.x-p.x,dy=c.y-p.y,d=Math.hypot(dx,dy),min=p.r+c.radius;
         if(d<min&&d>0){c.x=p.x+dx/d*min;c.y=p.y+dy/d*min;}
@@ -951,14 +951,14 @@ wrap.addEventListener('pointerdown',e=>{
       const topHalf=e.clientY<H*0.5;
       if(topHalf){
         if(inCircle(e.clientX,e.clientY,fireBtn2())){fireHeld2=e.pointerId;wantAttack2=true;}
-        else if(!joy2.active){joy2.active=true;joy2.id=e.pointerId;joy2.ox=e.clientX;joy2.oy=e.clientY;joy2.dx=0;joy2.dy=0;}
+        else{joy2.active=true;joy2.id=e.pointerId;joy2.ox=e.clientX;joy2.oy=e.clientY;joy2.dx=0;joy2.dy=0;}
       }else{
         if(inCircle(e.clientX,e.clientY,fireBtn1())){fireHeld=e.pointerId;wantAttack=true;}
-        else if(!joy.active){joy.active=true;joy.id=e.pointerId;joy.ox=e.clientX;joy.oy=e.clientY;joy.dx=0;joy.dy=0;}
+        else{joy.active=true;joy.id=e.pointerId;joy.ox=e.clientX;joy.oy=e.clientY;joy.dx=0;joy.dy=0;}
       }
     }else{
       if(inCircle(e.clientX,e.clientY,fireBtn1())){fireHeld=e.pointerId;wantAttack=true;}
-      else if(!joy.active){joy.active=true;joy.id=e.pointerId;joy.ox=e.clientX;joy.oy=e.clientY;joy.dx=0;joy.dy=0;}
+      else{joy.active=true;joy.id=e.pointerId;joy.ox=e.clientX;joy.oy=e.clientY;joy.dx=0;joy.dy=0;}
     }
   }else if(mode==='board'&&(gameMode==='hotseat'||turnSide===playerSide)){
     boardTap(e.clientX,e.clientY);
@@ -984,6 +984,11 @@ function endPointer(e){
 }
 wrap.addEventListener('pointerup',endPointer);
 wrap.addEventListener('pointercancel',endPointer);
+wrap.addEventListener('lostpointercapture',endPointer);
+// belt and braces: if the page loses focus or is hidden mid-drag, drop every held input
+function releaseAll(){joy.active=false;joy.dx=0;joy.dy=0;joy2.active=false;joy2.dx=0;joy2.dy=0;fireHeld=null;fireHeld2=null;for(const k in keys)keys[k]=false;}
+window.addEventListener('blur',releaseAll);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseAll();});
 
 function boardTap(px,py){
   const {x,y,cell}=boardGeom;
