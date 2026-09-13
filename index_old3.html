@@ -3,16 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Arkonia — Prototype v9: Creatures</title>
+<title>Arkonia — Prototype v6.2: Mobile Controls</title>
 <style>
-  :root{ --ink:#e7dfc9; --field:#171a21; --lightc:#e7dfc9; --darkc:#a63a2e; --gilt:#c9a45a; --dim:#6b7180; }
+  :root{ --ink:#e8e4d8; --field:#14161c; --lightc:#e4dcc4; --darkc:#c94f3e; --dim:#5a5f6e; }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%;overflow:hidden;background:var(--field);font-family:Georgia,'Times New Roman',serif;color:var(--ink)}
   #wrap{position:fixed;inset:0;touch-action:none}
   canvas{display:block;width:100%;height:100%}
   .overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,11,15,.9);z-index:20;text-align:center;padding:24px}
   .overlay.hidden{display:none}
-  .overlay h1{font-size:clamp(28px,7vw,44px);letter-spacing:.10em;font-weight:normal;margin-bottom:6px}
+  .overlay h1{font-size:clamp(28px,7vw,44px);letter-spacing:.06em;font-weight:normal;margin-bottom:6px}
   .overlay p.sub{color:var(--dim);font-size:14px;margin-bottom:26px;max-width:380px;line-height:1.55}
   .pick{display:flex;gap:16px;margin-bottom:22px}
   .pick button{background:none;border:1px solid #3a3f4d;color:var(--ink);padding:18px 20px;font-family:inherit;font-size:15px;cursor:pointer;width:168px;border-radius:2px}
@@ -62,8 +62,6 @@
 <div id="spellbar">
   <button id="spTeleport">Teleport</button>
   <button id="spRevive">Revive</button>
-  <button id="spImprison">Imprison</button>
-  <button id="spShift">Shift Time</button>
   <button id="spCancel">Cancel</button>
 </div>
 <div id="spellhint"></div>
@@ -81,7 +79,7 @@
 
 <div class="overlay" id="menu">
   <h1>ARKONIA</h1>
-  <p class="sub">Prototype v9 — the First Forms take their creature shapes: galloping unicorns, wing-beating dragons, striding knights. Bone and garnet on lacquered moonlight. Six champions per side, leader-casters with spells, and a Field that breathes. Hold all five power points or destroy the enemy army.</p>
+  <p class="sub">Prototype v6 — Glory. Champions now remember their victories, and the enemy caster has learned to cast. Six champions per side, leader-casters with spells, and a Field that breathes. Hold all five power points or destroy the enemy army.</p>
   <div class="pick">
     <button class="light-side" id="pickLight">
       <span class="champ-name">Light</span>
@@ -96,7 +94,7 @@
   <p id="ledger" style="color:#8a835f;font-size:12px;line-height:1.6;margin-bottom:18px"></p>
   <p class="controls-note">
     Board: tap a piece, tap a highlighted square. Land on an enemy to challenge.<br>
-    Casters hold four spells, once each: Teleport, Revive, Imprison, Shift Time. The enemy caster casts too.<br>Wounds persist after battle and heal each turn — faster on ground that favors you. Hunt the wounded; shelter your own.<br>
+    Select your caster to see spells: Teleport and Revive, once each per game. The enemy caster casts too, now.<br>
     Arena vs AI — touch: drag anywhere to move; tap or hold the STRIKE button to attack — or flip 'auto' on and just pilot. Keys: WASD + Space.<br>
     Arena hotseat — Light: WASD + Space. Dark: Arrows + Enter. Touch: Light drags in the bottom half with a STRIKE button bottom-right; Dark drags in the top half with a STRIKE button top-right.<br>
     Fight on squares that favor your side — the favored champion enters stronger.
@@ -166,7 +164,7 @@ const SFX={
 // ================= CHAMPION KITS =================
 const KITS={
   knight: {side:'light',hp:60, speed:300,dmg:9, cd:0.42,style:'melee', radius:16,move:3,fly:false,step:'knightStep', glyph:'square',  leader:false},
-  unicorn:{side:'light',hp:65, speed:320,dmg:11,cd:1.1, style:'ranged',projSpeed:480,projR:6, radius:16,move:4,fly:false,step:'unicornStep',glyph:'chevron', leader:false},
+  unicorn:{side:'light',hp:65, speed:320,dmg:13,cd:1.0, style:'charge',radius:16,move:4,fly:false,step:'unicornStep',glyph:'chevron', leader:false},
   golem:  {side:'light',hp:150,speed:95, dmg:30,cd:2.2, style:'ranged',projSpeed:220,projR:12,radius:26,move:2,fly:false,step:'golemStep',glyph:'circle', leader:false},
   wizard: {side:'light',hp:55, speed:190,dmg:14,cd:1.0, style:'ranged',projSpeed:390,projR:7, radius:15,move:3,fly:true, step:'wizardStep',glyph:'star',  leader:true},
   banshee:{side:'dark', hp:70, speed:275,dmg:6, cd:0.55,style:'pulse', pulseR:95,radius:15,move:3,fly:true, step:'bansheeStep',glyph:'diamond',leader:false},
@@ -233,7 +231,7 @@ function renownTier(kind){
   const g=GLORY.kinds[kind]||0;
   if(g>=30)return 3; if(g>=15)return 2; if(g>=5)return 1; return 0;
 }
-const TIER_COLORS=[null,'rgba(205,127,50,0.9)','rgba(200,200,210,0.95)','rgba(201,164,90,1)'];
+const TIER_COLORS=[null,'rgba(205,127,50,0.9)','rgba(200,200,210,0.95)','rgba(255,215,0,0.95)'];
 function renderLedger(){
   const el=document.getElementById('ledger');
   if(!el)return;
@@ -268,7 +266,7 @@ let shake={t:0,mag:0};
 const COLS=9, ROWS=9;
 const POWER=[[4,0],[0,4],[4,4],[8,4],[4,8]];
 
-function makePiece(kind,c,r){return {kind, side:KITS[kind].side, c, r, alive:true, hpFrac:1, imprisonedUntil:0};}
+function makePiece(kind,c,r){return {kind, side:KITS[kind].side, c, r, alive:true};}
 function newBoard(){
   const cells=[];
   for(let c=0;c<COLS;c++){cells[c]=[];for(let r=0;r<ROWS;r++){
@@ -288,16 +286,10 @@ function newBoard(){
   }
   return {cells,pieces};
 }
-let lumPhase=0, cycleDir=1;
 function lumValue(cell){
   if(cell.lum==='light')return 1;
   if(cell.lum==='dark')return -1;
-  return Math.sin(lumPhase);
-}
-function isImprisoned(p){return turnCount<p.imprisonedUntil;}
-function onFavoredSquare(p){
-  const l=lumValue(board.cells[p.c][p.r]);
-  return (p.side==='light'&&l>0.1)||(p.side==='dark'&&l<-0.1);
+  return Math.sin(turnCount*Math.PI*2/CYCLE_TURNS);
 }
 function layoutBoard(){
   const margin=14, topPad=64, botPad=64;
@@ -356,15 +348,8 @@ function doMove(p,c,r){
 function endTurn(){
   selected=null;reachable=[];spellMode=null;hideSpellUI();
   turnCount++;
-  const prev=Math.sin(lumPhase);
-  lumPhase+=cycleDir*Math.PI*2/CYCLE_TURNS;
-  const now=Math.sin(lumPhase);
+  const prev=Math.sin((turnCount-1)*Math.PI*2/CYCLE_TURNS),now=Math.sin(turnCount*Math.PI*2/CYCLE_TURNS);
   if((prev<=0&&now>0)||(prev>=0&&now<0))SFX.turn();
-  // wounds heal between fights — faster on favored ground
-  for(const p of board.pieces){
-    if(!p.alive||p.hpFrac>=1)continue;
-    p.hpFrac=Math.min(1,p.hpFrac+0.10+(onFavoredSquare(p)?0.08:0));
-  }
   turnSide=turnSide==='light'?'dark':'light';
   checkBoardVictory();
   if(mode==='board'&&gameMode==='ai'&&turnSide!==playerSide){aiMoveTimer=0.7;}
@@ -404,8 +389,6 @@ function showSpellUI(){
   const s=spells[hs];
   document.getElementById('spTeleport').disabled=!s.teleport;
   document.getElementById('spRevive').disabled=!s.revive||!board.pieces.some(p=>!p.alive&&p.side===hs);
-  document.getElementById('spImprison').disabled=!s.imprison;
-  document.getElementById('spShift').disabled=!s.shift;
   spellbar.classList.add('show');
 }
 function hideSpellUI(){spellbar.classList.remove('show');spellhint.classList.remove('show');revlist.classList.remove('show');spellMode=null;spellPiece=null;revivePick=null;}
@@ -426,13 +409,6 @@ document.getElementById('spRevive').onclick=()=>{
   revlist.classList.add('show');
   hint('Revive: choose the fallen');
 };
-document.getElementById('spImprison').onclick=()=>{
-  spellMode='im-pick';reachable=[];selected=null;
-  hint('Imprison: tap an enemy piece to bind it for three rounds');
-};
-document.getElementById('spShift').onclick=()=>{
-  castShift(humanSide());
-};
 document.getElementById('spCancel').onclick=()=>{hideSpellUI();selected=null;reachable=[];};
 function leaderOf(side){return board.pieces.find(p=>p.alive&&KITS[p.kind].leader&&p.side===side);}
 function castTeleport(side,piece,c,r){
@@ -443,25 +419,14 @@ function castTeleport(side,piece,c,r){
 }
 function castRevive(side,deadPiece,c,r){
   spells[side].revive=false;
-  deadPiece.alive=true;deadPiece.hpFrac=0.5;deadPiece.imprisonedUntil=0;
-  deadPiece.c=c;deadPiece.r=r;board.cells[c][r].piece=deadPiece;
+  deadPiece.alive=true;deadPiece.c=c;deadPiece.r=r;board.cells[c][r].piece=deadPiece;
   SFX.cast();hideSpellUI();endTurn();
-}
-function castImprison(side,target){
-  spells[side].imprison=false;
-  target.imprisonedUntil=turnCount+6; // three full rounds
-  SFX.cast();hideSpellUI();endTurn();
-}
-function castShift(side){
-  spells[side].shift=false;
-  cycleDir*=-1;
-  SFX.cast();SFX.turn();hideSpellUI();endTurn();
 }
 
 // ---- board AI (does not cast spells — the enemy caster hoards its power) ----
-function matchupScore(myKind,theirKind,lum,mySide,myFrac,theirFrac){
+function matchupScore(myKind,theirKind,lum,mySide){
   const me=KITS[myKind],them=KITS[theirKind];
-  let s=(me.hp*(myFrac||1)*me.dmg/me.cd)/(them.hp*(theirFrac||1)*them.dmg/them.cd);
+  let s=(me.hp*me.dmg/me.cd)/(them.hp*them.dmg/them.cd);
   const favored=(mySide==='light'&&lum>0.1)||(mySide==='dark'&&lum<-0.1);
   const unfavored=(mySide==='light'&&lum<-0.1)||(mySide==='dark'&&lum>0.1);
   if(favored)s*=1.3;if(unfavored)s*=0.75;
@@ -475,7 +440,7 @@ function aiTrySpell(mySide){
   if(sp.teleport){
     let threatened=false;
     for(const e of board.pieces){
-      if(!e.alive||e.side===mySide||isImprisoned(e))continue;
+      if(!e.alive||e.side===mySide)continue;
       if(reachableSquares(e).some(([c,r])=>c===L.c&&r===L.r)){threatened=true;break;}
     }
     if(threatened){
@@ -489,21 +454,6 @@ function aiTrySpell(mySide){
       }
       if(best){castTeleport(mySide,L,best[0],best[1]);return true;}
     }
-  }
-  // 1b) Imprison: if the leader is threatened and teleport is spent, bind the threat
-  if(sp.imprison){
-    for(const e of board.pieces){
-      if(!e.alive||e.side===mySide||isImprisoned(e))continue;
-      if(reachableSquares(e).some(([c,r])=>c===L.c&&r===L.r)){
-        if(!sp.teleport){castImprison(mySide,e);return true;}
-      }
-    }
-  }
-  // 1c) Shift Time: if the cycle is deep against us and still turning wrong
-  if(sp.shift){
-    const l=Math.sin(lumPhase);
-    const against=(mySide==='light'&&l<-0.6)||(mySide==='dark'&&l>0.6);
-    if(against){castShift(mySide);return true;}
   }
   // 2) Revive: when down on material, bring back the strongest fallen champion
   if(sp.revive){
@@ -529,7 +479,7 @@ function aiTrySpell(mySide){
 function aiTakeTurn(){
   const mySide=turnSide;
   if(aiTrySpell(mySide))return;
-  const myPieces=board.pieces.filter(p=>p.alive&&p.side===mySide&&!isImprisoned(p));
+  const myPieces=board.pieces.filter(p=>p.alive&&p.side===mySide);
   let best=null,bestScore=-1e9;
   for(const p of myPieces){
     const isLeader=KITS[p.kind].leader;
@@ -537,11 +487,10 @@ function aiTakeTurn(){
       const cell=board.cells[c][r];
       let score=Math.random()*0.3;
       if(cell.piece){
-        const m=matchupScore(p.kind,cell.piece.kind,lumValue(cell),mySide,p.hpFrac,cell.piece.hpFrac);
+        const m=matchupScore(p.kind,cell.piece.kind,lumValue(cell),mySide);
         score=m>0.9?40+m*10:-5;
         if(isLeader)score-=25; // protect the caster
         if(KITS[cell.piece.kind].leader)score+=12; // hunt theirs
-        if(cell.piece.hpFrac<0.5)score+=8; // finish the wounded
         if(POWER.some(pt=>pt[0]===c&&pt[1]===r))score+=4;
       }else{
         let dMin=99;
@@ -568,9 +517,9 @@ function makeFighter(piece,isPlayer,hpMult,ctrl){
   return {
     piece,kind:piece.kind,side:piece.side,isPlayer,ctrl:ctrl||(isPlayer?'p1':'ai'),
     x:0,y:0,vx:0,vy:0,facing:0,
-    maxhp:Math.round(kit.hp*hpMult),hp:Math.max(1,Math.round(kit.hp*hpMult*(piece.hpFrac!==undefined?piece.hpFrac:1))),
+    maxhp:Math.round(kit.hp*hpMult),hp:Math.round(kit.hp*hpMult),
     speed:kit.speed,radius:kit.radius,attackCD:kit.cd,cdTimer:0,stepTimer:0,
-    slashTimer:0,lungeTimer:0,pulseTimer:0,chargeTimer:0,chargeHit:false,blinkTimer:2.2,walkPhase:0,animT:0,
+    slashTimer:0,lungeTimer:0,pulseTimer:0,chargeTimer:0,chargeHit:false,blinkTimer:2.2,
     stun:0,iframes:0,flash:0,
     ai:{strafeDir:Math.random()<.5?1:-1,strafeTimer:0,retreatTimer:0}
   };
@@ -609,7 +558,6 @@ function arenaAttack(c,target){
   if(c.cdTimer>0||c.stun>0)return;
   const kit=KITS[c.kind];
   c.cdTimer=c.attackCD;
-  c.animT=0.35;
   const ang=Math.atan2(target.y-c.y,target.x-c.x);
   c.facing=ang;
   if(kit.style==='melee'){
@@ -661,7 +609,6 @@ function arenaEnd(winner,loser){
       if(board.cells[pc.c][pc.r].piece===pc)board.cells[pc.c][pc.r].piece=null;
     }
     const wp=winner.piece;
-    wp.hpFrac=Math.max(0.05,winner.hp/winner.maxhp);
     wp.c=f.c;wp.r=f.r;board.cells[f.c][f.r].piece=wp;
     addKindGlory(wp.kind);
     pendingFight=null;
@@ -805,8 +752,6 @@ function arenaMove(c,dt){
   c.chargeTimer=Math.max(0,c.chargeTimer-dt);
   c.stun=Math.max(0,c.stun-dt);
   c.iframes=Math.max(0,c.iframes-dt);
-  c.animT=Math.max(0,c.animT-dt);
-  c.walkPhase+=Math.hypot(c.vx,c.vy)*dt*0.06;
   c.flash=Math.max(0,c.flash-dt);
   const moving=Math.hypot(c.vx,c.vy)>c.speed*0.3;
   c.stepTimer-=dt;
@@ -898,10 +843,6 @@ function boardTap(px,py){
     if(!piece){castTeleport(humanSide(),spellPiece,c,r);}
     return;
   }
-  if(spellMode==='im-pick'){
-    if(piece&&piece.side!==humanSide()){castImprison(humanSide(),piece);}
-    return;
-  }
   if(spellMode==='rv-dest'){
     const L=leaderOf(humanSide());
     if(!piece&&L&&Math.max(Math.abs(c-L.c),Math.abs(r-L.r))===1){castRevive(humanSide(),revivePick,c,r);}
@@ -911,7 +852,6 @@ function boardTap(px,py){
   // normal selection / movement
   if(selected&&reachable.some(([rc,rr])=>rc===c&&rr===r)){doMove(selected,c,r);return;}
   if(piece&&piece.side===humanSide()){
-    if(isImprisoned(piece)){SFX.lose&&tone(180,120,0.15,'sine',0.1);selected=null;reachable=[];hideSpellUI();return;}
     selected=piece;reachable=reachableSquares(piece);SFX.select();
     if(KITS[piece.kind].leader&&(spells[humanSide()].teleport||spells[humanSide()].revive))showSpellUI();
     else hideSpellUI();
@@ -925,8 +865,8 @@ function draw(){
   else{ctx.fillStyle='#14161c';ctx.fillRect(0,0,W,H);}
 }
 function lumColor(v){
-  const t=(v+1)/2; // lacquer -> moonlight silver
-  const r=Math.round(28+t*173),g=Math.round(32+t*181),b=Math.round(42+t*179);
+  const t=(v+1)/2;
+  const r=Math.round(26+t*150),g=Math.round(28+t*140),b=Math.round(36+t*110);
   return `rgb(${r},${g},${b})`;
 }
 function drawBoard(){
@@ -937,7 +877,7 @@ function drawBoard(){
     ctx.fillStyle=lumColor(lumValue(cellD));
     ctx.fillRect(x+c*cell,y+r*cell,cell-1,cell-1);
     if(POWER.some(p=>p[0]===c&&p[1]===r)){
-      ctx.strokeStyle='rgba(201,164,90,0.85)';ctx.lineWidth=2;
+      ctx.strokeStyle='rgba(230,220,190,0.7)';ctx.lineWidth=2;
       ctx.beginPath();ctx.arc(x+c*cell+cell/2,y+r*cell+cell/2,cell*0.32,0,7);ctx.stroke();
       ctx.lineWidth=1;
     }
@@ -950,10 +890,6 @@ function drawBoard(){
     }
     ctx.strokeStyle='#fff';
     ctx.strokeRect(x+selected.c*cell+2,y+selected.r*cell+2,cell-5,cell-5);
-  }
-  if(spellMode==='im-pick'){
-    if(piece&&piece.side!==humanSide()){castImprison(humanSide(),piece);}
-    return;
   }
   if(spellMode==='rv-dest'){
     const L=leaderOf(humanSide());
@@ -975,19 +911,6 @@ function drawBoard(){
       ctx.beginPath();ctx.arc(cx,cy,cell*0.42,0,7);ctx.stroke();ctx.lineWidth=1;
     }
     drawGlyph(p.kind,p.side,cx,cy,cell*0.33);
-    if(p.hpFrac<0.999){
-      const bw2=cell*0.6;
-      ctx.fillStyle='rgba(0,0,0,0.5)';
-      ctx.fillRect(cx-bw2/2,cy+cell*0.36,bw2,3);
-      ctx.fillStyle=p.side==='light'?'rgba(231,223,201,0.95)':'rgba(198,81,66,0.95)';
-      ctx.fillRect(cx-bw2/2,cy+cell*0.36,bw2*p.hpFrac,3);
-    }
-    if(isImprisoned(p)){
-      ctx.strokeStyle='rgba(139,149,165,0.9)';ctx.lineWidth=2;
-      ctx.beginPath();ctx.arc(cx,cy,cell*0.40,0,7);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(cx-cell*0.28,cy-cell*0.28);ctx.lineTo(cx+cell*0.28,cy+cell*0.28);ctx.stroke();
-      ctx.lineWidth=1;
-    }
   }
   ctx.textAlign='center';ctx.font='13px Georgia';
   const lv=lumValue({lum:'cycle'});
@@ -1001,214 +924,26 @@ function drawBoard(){
   ctx.fillText('Light '+lc+'   \u00b7   rings: hold all five   \u00b7   Dark '+dc2,W/2,48);
   ctx.textAlign='left';
 }
-const EMBLEMS={
-  knight:{fills:['M60 26 L78 50 L78 74 L60 92 L42 74 L42 50 Z'],
-          engr:['M60 26 L60 92','M48 58 L72 58','M52 44 L68 44','M52 72 L68 72']},
-  unicorn:{fills:['M60 24 L74 88 L60 78 L46 88 Z'],
-           engr:['M56 40 L66 44','M54 52 L68 57','M52 64 L70 70']},
-  golem:{fills:['M38 84 L44 62 L54 62 L52 84 Z','M56 84 L58 58 L70 58 L74 84 Z','M46 58 L50 40 L68 36 L72 54 L58 56 Z','M78 84 L76 66 L84 62 L88 84 Z'],engr:[]},
-  wizard:{fills:['M60 26 L65 50 L88 44 L70 60 L88 76 L65 70 L60 94 L55 70 L32 76 L50 60 L32 44 L55 50 Z'],engr:[],hole:true},
-  banshee:{fills:['M42 44 C50 30, 70 30, 78 44 C70 40, 50 40, 42 44 Z','M46 52 C56 46, 64 46, 74 52 L70 88 C66 80, 54 80, 50 88 Z'],
-           engr:['M54 60 L54 74','M60 58 L60 78','M66 60 L66 74']},
-  djinn:{fills:['M64 26 C88 34, 90 64, 68 70 C82 62, 80 42, 62 38 C46 34, 38 52, 48 62 C40 66, 30 54, 36 42 C42 30, 54 24, 64 26 Z','M52 70 C60 64, 72 68, 70 80 C66 92, 48 92, 46 80 C46 74, 48 72, 52 70 Z'],engr:[]},
-  dragon:{fills:['M34 78 C40 46, 66 30, 90 36 C74 40, 64 48, 60 58 L74 56 C64 64, 56 66, 50 64 L58 76 C50 78, 42 76, 38 70 Z'],
-          engr:['M44 66 L52 60']},
-  sorceress:{fills:['M60 26 L65 50 L88 44 L70 60 L88 76 L65 70 L60 94 L55 70 L32 76 L50 60 L32 44 L55 50 Z'],engr:[],
-             eclipse:'M60 44 A16 16 0 1 0 60 76 A20 16 0 1 1 60 44 Z'},
-};
-const PATH_CACHE={};
-function emblemPaths(kind){
-  if(!PATH_CACHE[kind]){
-    const e=EMBLEMS[kind];
-    PATH_CACHE[kind]={
-      fills:e.fills.map(d=>new Path2D(d)),
-      engr:e.engr.map(d=>new Path2D(d)),
-      eclipse:e.eclipse?new Path2D(e.eclipse):null,
-      hole:!!e.hole
-    };
-  }
-  return PATH_CACHE[kind];
-}
-const LACQUER='#10131a', GILT='rgba(201,164,90,0.9)', BRONZE='rgba(111,99,83,0.9)';
-function drawEmblem(kind,x,y,size,fillColor,rot){
-  const pp=emblemPaths(kind);
-  ctx.save();ctx.translate(x,y);
-  if(rot)ctx.rotate(rot);
-  const sc=size/60;ctx.scale(sc,sc);ctx.translate(-60,-60);
-  ctx.fillStyle=fillColor;
-  for(const path of pp.fills)ctx.fill(path);
-  if(pp.eclipse){ctx.fillStyle=LACQUER;ctx.fill(pp.eclipse);}
-  if(pp.hole){
-    ctx.fillStyle=LACQUER;ctx.beginPath();ctx.arc(60,60,7,0,7);ctx.fill();
-    ctx.strokeStyle=GILT;ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(60,60,7,0,7);ctx.stroke();
-  }
-  ctx.strokeStyle=LACQUER;ctx.lineWidth=2.4;
-  for(const path of pp.engr)ctx.stroke(path);
-  ctx.restore();
-}
-
-// ================= CREATURE RENDERING =================
-// Side-profile figurative creatures, facing +x; mirror for left-facing.
-// walk: gait phase. anim: 0..1 attack accent. t: ambient time.
-function limb(x1,y1,x2,y2,w,color){
-  ctx.lineCap='round';
-  ctx.strokeStyle=LACQUER;ctx.lineWidth=w+2.4;
-  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
-  ctx.strokeStyle=color;ctx.lineWidth=w;
-  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
-}
-function bodyFill(path,color){
-  ctx.fillStyle=color;ctx.fill(path);
-  ctx.strokeStyle=LACQUER;ctx.lineWidth=2;ctx.stroke(path);
-}
-function ell(cx,cy,rx,ry,rot){
-  const p=new Path2D();p.ellipse(cx,cy,rx,ry,rot||0,0,Math.PI*2);return p;
-}
-function drawCreature(kind,color,s,walk,anim,t,mirror){
-  ctx.save();
-  ctx.scale(mirror,1);
-  ctx.lineJoin='round';
-  const sw=Math.max(2,s*0.14); // limb width
-  if(kind==='unicorn'){
-    const g=Math.sin(walk), g2=Math.sin(walk+Math.PI);
-    const amp=s*(0.22+anim*0.2);
-    // hind legs
-    limb(-s*0.32,s*0.14,-s*0.32+g2*amp,s*0.72,sw,color);
-    limb(-s*0.18,s*0.14,-s*0.18+g*amp*0.8,s*0.72,sw,color);
-    // body
-    bodyFill(ell(0,0,s*0.52,s*0.26),color);
-    // fore legs
-    limb(s*0.22,s*0.14,s*0.22+g*amp,s*0.72,sw,color);
-    limb(s*0.36,s*0.14,s*0.36+g2*amp*0.8,s*0.72,sw,color);
-    // tail
-    limb(-s*0.5,-s*0.05,-s*0.72,s*0.18+Math.sin(t*3)*s*0.05,sw*0.7,color);
-    // neck + head
-    limb(s*0.4,-s*0.08,s*0.6,-s*0.42,sw*1.2,color);
-    bodyFill(ell(s*0.66,-s*0.46,s*0.15,s*0.10,-0.35),color);
-    // horn — tilts level when striking
-    const hornA=-0.9+anim*0.75;
-    const hx=s*0.74,hy=-s*0.52,hl=s*0.34;
-    limb(hx,hy,hx+Math.cos(hornA)*hl,hy+Math.sin(hornA)*hl,sw*0.55,'#c9a45a');
-    // ear
-    limb(s*0.6,-s*0.56,s*0.56,-s*0.66,sw*0.5,color);
-  }
-  else if(kind==='knight'){
-    const g=Math.sin(walk);
-    limb(-s*0.1,s*0.25,-s*0.1+g*s*0.2,s*0.8,sw,color);
-    limb(s*0.1,s*0.25,s*0.1-g*s*0.2,s*0.8,sw,color);
-    const torso=new Path2D();torso.rect(-s*0.26,-s*0.42,s*0.52,s*0.72);
-    bodyFill(torso,color);
-    bodyFill(ell(0,-s*0.58,s*0.2,s*0.2),color);
-    ctx.strokeStyle=LACQUER;ctx.lineWidth=1.6;
-    ctx.beginPath();ctx.moveTo(-s*0.12,-s*0.58);ctx.lineTo(s*0.12,-s*0.58);ctx.stroke(); // visor
-    // shield (front)
-    bodyFill(ell(s*0.34,-s*0.02,s*0.13,s*0.3),color);
-    // sword arm (back) — swings on strike
-    const swA=-2.1+anim*1.9;
-    const shx=-s*0.28,shy=-s*0.28;
-    limb(shx,shy,shx+Math.cos(swA)*s*0.28,shy+Math.sin(swA)*s*0.28,sw*0.8,color);
-    const wx=shx+Math.cos(swA)*s*0.28,wy=shy+Math.sin(swA)*s*0.28;
-    limb(wx,wy,wx+Math.cos(swA)*s*0.5,wy+Math.sin(swA)*s*0.5,sw*0.4,'#f2ecd9');
-  }
-  else if(kind==='golem'){
-    const g=Math.sin(walk*0.6);
-    limb(-s*0.2,s*0.35,-s*0.2+g*s*0.08,s*0.85,sw*1.6,color);
-    limb(s*0.2,s*0.35,s*0.2-g*s*0.08,s*0.85,sw*1.6,color);
-    const torso=new Path2D();torso.rect(-s*0.42,-s*0.45,s*0.84,s*0.85);
-    bodyFill(torso,color);
-    ctx.strokeStyle=LACQUER;ctx.lineWidth=1.6;
-    ctx.beginPath();ctx.moveTo(-s*0.3,-s*0.1);ctx.lineTo(-s*0.05,s*0.1);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(s*0.12,s*0.02);ctx.lineTo(s*0.3,s*0.24);ctx.stroke();
-    const head=new Path2D();head.rect(-s*0.16,-s*0.66,s*0.32,s*0.2);
-    bodyFill(head,color);
-    // back arm
-    limb(-s*0.42,-s*0.3,-s*0.52,s*0.25,sw*1.4,color);
-    // front arm — hurls overhead
-    const aA=0.9-anim*2.3;
-    limb(s*0.42,-s*0.3,s*0.42+Math.cos(aA)*s*0.55,-s*0.3+Math.sin(aA)*s*0.55,sw*1.4,color);
-  }
-  else if(kind==='wizard'||kind==='sorceress'){
-    const robe=new Path2D();
-    robe.moveTo(0,-s*0.4);
-    robe.quadraticCurveTo(s*0.42,s*0.1,s*0.34,s*0.8);
-    robe.quadraticCurveTo(0,s*0.68,-s*0.34,s*0.8);
-    robe.quadraticCurveTo(-s*0.42,s*0.1,0,-s*0.4);
-    bodyFill(robe,color);
-    bodyFill(ell(0,-s*0.52,s*0.18,s*0.18),color);
-    // staff — raises on cast
-    const stA=-0.9-anim*0.8;
-    const bx=s*0.16,by=s*0.05;
-    const tx=bx+Math.cos(stA)*s*0.7,ty=by+Math.sin(stA)*s*0.7;
-    limb(bx,by,tx,ty,sw*0.5,color);
-    const orb=kind==='wizard'?'#c9a45a':'#9fb0c4';
-    ctx.fillStyle=orb;
-    ctx.beginPath();ctx.arc(tx,ty,s*(0.09+anim*0.06),0,7);ctx.fill();
-    ctx.strokeStyle=LACQUER;ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.arc(tx,ty,s*(0.09+anim*0.06),0,7);ctx.stroke();
-  }
-  else if(kind==='banshee'){
-    const fl=1+anim*0.3;
-    const gown=new Path2D();
-    gown.moveTo(0,-s*0.35);
-    gown.quadraticCurveTo(s*0.4*fl,s*0.0,s*(0.3+0.06*Math.sin(t*3))*fl,s*0.8);
-    gown.lineTo(s*0.1,s*(0.62+0.05*Math.sin(t*3+2)));
-    gown.lineTo(-s*0.1,s*(0.78+0.05*Math.sin(t*3+4)));
-    gown.lineTo(-s*(0.3+0.06*Math.sin(t*3+1))*fl,s*0.7);
-    gown.quadraticCurveTo(-s*0.4*fl,s*0.0,0,-s*0.35);
-    bodyFill(gown,color);
-    bodyFill(ell(0,-s*0.5,s*0.17,s*0.19),color);
-    ctx.fillStyle=LACQUER;
-    ctx.beginPath();ctx.ellipse(s*0.03,-s*0.48,s*0.08,s*(0.06+anim*0.06),0,0,7);ctx.fill(); // the wail
-  }
-  else if(kind==='djinn'){
-    // smoke tail — undulates
-    const u=t*4;
-    limb(0,s*0.1, s*0.12*Math.sin(u),s*0.4, sw*1.5,color);
-    limb(s*0.12*Math.sin(u),s*0.4, -s*0.14*Math.sin(u+1),s*0.68, sw*1.1,color);
-    limb(-s*0.14*Math.sin(u+1),s*0.68, s*0.1*Math.sin(u+2),s*0.88, sw*0.7,color);
-    bodyFill(ell(0,-s*0.12,s*0.3,s*0.26),color);
-    bodyFill(ell(0,-s*0.48,s*0.16,s*0.17),color);
-    limb(0,-s*0.6,0,-s*0.72,sw*0.5,color); // topknot
-    // back arm
-    limb(-s*0.26,-s*0.18,-s*0.42,s*0.05,sw*0.8,color);
-    // front arm — throws
-    const aA=-0.3-anim*0.9;
-    limb(s*0.26,-s*0.18,s*0.26+Math.cos(aA)*s*0.4,-s*0.18+Math.sin(aA)*s*0.4,sw*0.8,color);
-  }
-  else if(kind==='dragon'){
-    // tail
-    limb(-s*0.45,s*0.05,-s*0.78,s*(0.12+0.05*Math.sin(t*2.5)),sw,color);
-    // body
-    bodyFill(ell(-s*0.02,s*0.05,s*0.5,s*0.27),color);
-    // legs (small, tucked)
-    limb(-s*0.2,s*0.25,-s*0.24,s*0.5,sw*0.8,color);
-    limb(s*0.14,s*0.25,s*0.1,s*0.5,sw*0.8,color);
-    // wing — beats
-    const wA=-0.5+Math.sin(t*5)*0.35;
-    ctx.save();ctx.translate(-s*0.02,-s*0.12);ctx.rotate(wA);
-    const wing=new Path2D();
-    wing.moveTo(0,0);wing.lineTo(s*0.55,-s*0.5);wing.lineTo(s*0.7,-s*0.2);wing.lineTo(s*0.35,-s*0.05);wing.closePath();
-    bodyFill(wing,color);
-    ctx.restore();
-    // neck + head — rears back to breathe
-    const nA=-0.75-anim*0.55;
-    const nx=s*0.4,ny=-s*0.05;
-    const hx=nx+Math.cos(nA)*s*0.42,hy=ny+Math.sin(nA)*s*0.42;
-    limb(nx,ny,hx,hy,sw*1.2,color);
-    bodyFill(ell(hx+s*0.1,hy-s*0.02,s*0.16,s*0.09,0.15),color);
-    // jaw opens
-    if(anim>0.05){
-      ctx.strokeStyle=LACQUER;ctx.lineWidth=2;
-      ctx.beginPath();ctx.moveTo(hx+s*0.12,hy);ctx.lineTo(hx+s*0.28,hy+s*0.1*anim);ctx.stroke();
-    }
-  }
-  ctx.restore();
-}
-
 function drawGlyph(kind,side,px,py,s){
-  // creature silhouette — Light faces right, Dark faces left
   ctx.save();ctx.translate(px,py);
-  drawCreature(kind,side==='light'?'#e7dfc9':'#a63a2e',s*1.15,0,0,0,side==='light'?1:-1);
+  ctx.fillStyle=side==='light'?'#e4dcc4':'#a83a2c';
+  ctx.strokeStyle='rgba(0,0,0,0.45)';
+  if(kind==='knight'){ctx.fillRect(-s*0.7,-s*0.7,s*1.4,s*1.4);ctx.strokeRect(-s*0.7,-s*0.7,s*1.4,s*1.4);}
+  else if(kind==='golem'){ctx.beginPath();ctx.arc(0,0,s*0.85,0,7);ctx.fill();ctx.stroke();}
+  else if(kind==='dragon'){ctx.beginPath();ctx.moveTo(0,-s);ctx.lineTo(s*0.9,s*0.75);ctx.lineTo(-s*0.9,s*0.75);ctx.closePath();ctx.fill();ctx.stroke();}
+  else if(kind==='banshee'){ctx.beginPath();ctx.moveTo(0,-s);ctx.lineTo(s*0.75,0);ctx.lineTo(0,s);ctx.lineTo(-s*0.75,0);ctx.closePath();ctx.fill();ctx.stroke();}
+  else if(kind==='unicorn'){ctx.beginPath();ctx.moveTo(-s*0.8,s*0.6);ctx.lineTo(0,-s*0.9);ctx.lineTo(s*0.8,s*0.6);ctx.lineTo(0,s*0.15);ctx.closePath();ctx.fill();ctx.stroke();}
+  else if(kind==='djinn'){ctx.beginPath();ctx.arc(0,-s*0.3,s*0.5,0,7);ctx.fill();ctx.beginPath();ctx.moveTo(-s*0.5,s*0.05);ctx.quadraticCurveTo(0,s*1.1,s*0.5,s*0.05);ctx.closePath();ctx.fill();ctx.stroke();}
+  else{ // wizard / sorceress — five-point star
+    ctx.beginPath();
+    for(let i=0;i<10;i++){
+      const ang=-Math.PI/2+i*Math.PI/5;
+      const rad=i%2===0?s:s*0.45;
+      const X=Math.cos(ang)*rad,Y=Math.sin(ang)*rad;
+      if(i===0)ctx.moveTo(X,Y);else ctx.lineTo(X,Y);
+    }
+    ctx.closePath();ctx.fill();ctx.stroke();
+  }
   ctx.restore();
 }
 function drawArena(){
@@ -1217,16 +952,16 @@ function drawArena(){
     shake.t-=1/60;
     ctx.translate((Math.random()-0.5)*shake.mag,(Math.random()-0.5)*shake.mag);
   }
-  const l=A.lum,tl=(l+1)/2;
-  ctx.fillStyle=`rgb(${Math.round(23+tl*16)},${Math.round(26+tl*22)},${Math.round(33+tl*30)})`;
-  ctx.fillRect(-12,-12,W+24,H+24);
+  const l=A.lum;
+  const base=20,range=26,g=Math.round(base+range*(l+1)/2);
+  ctx.fillStyle=`rgb(${g},${g+2},${g+6})`;ctx.fillRect(-12,-12,W+24,H+24);
   ctx.strokeStyle='rgba(140,140,150,0.05)';ctx.lineWidth=1;
   const cell=Math.min(W,H)/8;
   for(let x=cell;x<W;x+=cell){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
   for(let y=cell;y<H;y+=cell){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
   for(const p of A.pillars){ctx.fillStyle='#262a34';ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();ctx.strokeStyle='#3a3f4d';ctx.stroke();}
   for(const p of A.projectiles){
-    const col=p.kind==='dragon'?'#c65142':p.kind==='golem'?'#b8ab8f':p.kind==='djinn'?'#9fb0c4':p.kind==='unicorn'?'#f0e3a8':'#c9a45a';
+    const col=p.kind==='dragon'?'#e06c5a':p.kind==='golem'?'#b8a888':p.kind==='djinn'?'#9db8d8':'#e8d888';
     ctx.fillStyle=col;
     ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();
     ctx.globalAlpha=0.25;
@@ -1236,15 +971,26 @@ function drawArena(){
   for(const c of [A.enemy,A.player]){
     const flashing=c.iframes>0&&Math.floor(c.iframes*20)%2===0;
     ctx.globalAlpha=flashing?0.45:1;
-    const tNow=performance.now()/1000;
-    const idle=Math.hypot(c.vx,c.vy)<c.speed*0.15&&!A.over;
-    const bob=idle?Math.sin(tNow*Math.PI*2/3.6+(c.isPlayer?0:1.7))*2.5:0;
-    const other2=c===A.player?A.enemy:A.player;
-    const mirror=other2.x>=c.x?1:-1;   // face the enemy
-    ctx.save();ctx.translate(c.x,c.y+bob);
-    drawCreature(c.kind,
-      c.flash>0?'#ffffff':(c.side==='light'?'#e7dfc9':'#a63a2e'),
-      c.radius*1.55, c.walkPhase, Math.min(1,c.animT/0.35), tNow, mirror);
+    ctx.save();ctx.translate(c.x,c.y);ctx.rotate(c.facing+Math.PI/2);
+    ctx.fillStyle=c.flash>0?'#ffffff':(c.side==='light'?'#e4dcc4':'#a83a2c');
+    ctx.strokeStyle='rgba(0,0,0,0.4)';
+    const R=c.radius;
+    if(c.kind==='knight'){ctx.fillRect(-R*0.85,-R*0.85,R*1.7,R*1.7);ctx.strokeRect(-R*0.85,-R*0.85,R*1.7,R*1.7);}
+    else if(c.kind==='golem'){ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.fill();ctx.stroke();}
+    else if(c.kind==='dragon'){ctx.beginPath();ctx.moveTo(0,-R*1.2);ctx.lineTo(R,R*0.9);ctx.lineTo(-R,R*0.9);ctx.closePath();ctx.fill();ctx.stroke();}
+    else if(c.kind==='banshee'){ctx.beginPath();ctx.moveTo(0,-R*1.3);ctx.lineTo(R,0);ctx.lineTo(0,R*1.3);ctx.lineTo(-R,0);ctx.closePath();ctx.fill();ctx.stroke();}
+    else if(c.kind==='unicorn'){ctx.beginPath();ctx.moveTo(-R,R*0.8);ctx.lineTo(0,-R*1.2);ctx.lineTo(R,R*0.8);ctx.lineTo(0,R*0.25);ctx.closePath();ctx.fill();ctx.stroke();}
+    else if(c.kind==='djinn'){ctx.beginPath();ctx.arc(0,-R*0.35,R*0.6,0,7);ctx.fill();ctx.beginPath();ctx.moveTo(-R*0.6,R*0.05);ctx.quadraticCurveTo(0,R*1.4,R*0.6,R*0.05);ctx.closePath();ctx.fill();ctx.stroke();}
+    else{
+      ctx.beginPath();
+      for(let i=0;i<10;i++){
+        const ang=-Math.PI/2+i*Math.PI/5;
+        const rad=i%2===0?R*1.1:R*0.5;
+        const X=Math.cos(ang)*rad,Y=Math.sin(ang)*rad;
+        if(i===0)ctx.moveTo(X,Y);else ctx.lineTo(X,Y);
+      }
+      ctx.closePath();ctx.fill();ctx.stroke();
+    }
     ctx.restore();
     ctx.globalAlpha=1;
     const rt=renownTier(c.kind);
@@ -1283,7 +1029,7 @@ function drawArena(){
   for(const [c,x] of [[A.player,16],[A.enemy,W-16-bw]]){
     ctx.fillStyle='rgba(0,0,0,0.35)';ctx.fillRect(x,y,bw,bh);
     const frac=Math.max(0,c.hp/c.maxhp);
-    ctx.fillStyle=c.side==='light'?'#e7dfc9':'#a63a2e';
+    ctx.fillStyle=c.side==='light'?'#e4dcc4':'#c94f3e';
     ctx.fillRect(x,y,bw*frac,bh);
     ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.strokeRect(x,y,bw,bh);
     ctx.fillStyle='rgba(230,228,216,0.8)';ctx.font='11px Georgia';
@@ -1348,8 +1094,7 @@ function startGame(side,gm){
   gameMode=gm||'ai';
   playerSide=side;
   board=newBoard();turnSide='light';turnCount=0;selected=null;reachable=[];pendingFight=null;
-  spells={light:{teleport:true,revive:true,imprison:true,shift:true},dark:{teleport:true,revive:true,imprison:true,shift:true}};
-  lumPhase=0;cycleDir=1;
+  spells={light:{teleport:true,revive:true},dark:{teleport:true,revive:true}};
   hideSpellUI();
   document.getElementById('menu').classList.add('hidden');
   layoutBoard();
