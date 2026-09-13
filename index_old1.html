@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Arkonia — Prototype v6.1: Mobile Controls</title>
+<title>Arkonia — Prototype v6: Glory</title>
 <style>
   :root{ --ink:#e8e4d8; --field:#14161c; --lightc:#e4dcc4; --darkc:#c94f3e; --dim:#5a5f6e; }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -54,7 +54,6 @@
 
 <div id="topbtns">
   <button id="mute">sound: on</button>
-  <button id="autoBtn">auto: off</button>
   <button id="tuneBtn">tuning</button>
   <button id="menuBtn">menu</button>
 </div>
@@ -95,8 +94,8 @@
   <p class="controls-note">
     Board: tap a piece, tap a highlighted square. Land on an enemy to challenge.<br>
     Select your caster to see spells: Teleport and Revive, once each per game. The enemy caster casts too, now.<br>
-    Arena vs AI — touch: drag anywhere to move; tap or hold the STRIKE button to attack — or flip 'auto' on and just pilot. Keys: WASD + Space.<br>
-    Arena hotseat — Light: WASD + Space. Dark: Arrows + Enter. Touch: Light drags in the bottom half with a STRIKE button bottom-right; Dark drags in the top half with a STRIKE button top-right.<br>
+    Arena vs AI — touch: left half moves, tap right half attacks. Keys: WASD + Space.<br>
+    Arena hotseat — Light: WASD + Space. Dark: Arrows + Enter. Touch: Light owns the bottom half, Dark the top; in your half, left side moves, right side attacks.<br>
     Fight on squares that favor your side — the favored champion enters stronger.
   </p>
 </div>
@@ -686,18 +685,12 @@ function arenaMove(c,dt){
         if(keys['ArrowLeft'])mx-=1; if(keys['ArrowRight'])mx+=1;
       }
       if(joy.active){mx=joy.dx/60;my=joy.dy/60;}
-      atk=keys['Space']||wantAttack||fireHeld!==null; wantAttack=false;
-      if(autoAttack&&c.cdTimer<=0){
-        const d=Math.hypot(other.x-c.x,other.y-c.y);
-        const kit=KITS[c.kind];
-        const rng=kit.style==='melee'?70:kit.style==='pulse'?kit.pulseR:kit.style==='charge'?200:520;
-        if(d<rng+other.radius&&(kit.style!=='ranged'||arenaLineClear(c,other)))atk=true;
-      }
+      atk=keys['Space']||wantAttack; wantAttack=false;
     }else{ // p2
       if(keys['ArrowUp'])my-=1; if(keys['ArrowDown'])my+=1;
       if(keys['ArrowLeft'])mx-=1; if(keys['ArrowRight'])mx+=1;
       if(joy2.active){mx=joy2.dx/60;my=joy2.dy/60;}
-      atk=keys['Enter']||wantAttack2||fireHeld2!==null; wantAttack2=false;
+      atk=keys['Enter']||wantAttack2; wantAttack2=false;
     }
     const m=Math.hypot(mx,my);
     if(m>1){mx/=m;my/=m;}
@@ -778,26 +771,21 @@ window.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space')e.pr
 window.addEventListener('keyup',e=>{keys[e.code]=false;});
 let joy={active:false,id:null,ox:0,oy:0,dx:0,dy:0},wantAttack=false;
 let joy2={active:false,id:null,ox:0,oy:0,dx:0,dy:0},wantAttack2=false;
-let fireHeld=null,fireHeld2=null;   // pointerIds holding each fire button
-let autoAttack=false;
-function fireBtn1(){return {x:W-72,y:H-96,r:46};}
-function fireBtn2(){return {x:W-72,y:96,r:46};}   // hotseat: Dark's button, top-right
-function inCircle(px,py,b){return Math.hypot(px-b.x,py-b.y)<=b.r+10;}
 const wrap=document.getElementById('wrap');
 wrap.addEventListener('pointerdown',e=>{
   if(mode==='arena'){
     if(gameMode==='hotseat'){
       const topHalf=e.clientY<H*0.5;
       if(topHalf){
-        if(inCircle(e.clientX,e.clientY,fireBtn2())){fireHeld2=e.pointerId;wantAttack2=true;}
-        else if(!joy2.active){joy2.active=true;joy2.id=e.pointerId;joy2.ox=e.clientX;joy2.oy=e.clientY;joy2.dx=0;joy2.dy=0;}
+        if(e.clientX<W*0.5&&!joy2.active){joy2.active=true;joy2.id=e.pointerId;joy2.ox=e.clientX;joy2.oy=e.clientY;joy2.dx=0;joy2.dy=0;}
+        else wantAttack2=true;
       }else{
-        if(inCircle(e.clientX,e.clientY,fireBtn1())){fireHeld=e.pointerId;wantAttack=true;}
-        else if(!joy.active){joy.active=true;joy.id=e.pointerId;joy.ox=e.clientX;joy.oy=e.clientY;joy.dx=0;joy.dy=0;}
+        if(e.clientX<W*0.5&&!joy.active){joy.active=true;joy.id=e.pointerId;joy.ox=e.clientX;joy.oy=e.clientY;joy.dx=0;joy.dy=0;}
+        else wantAttack=true;
       }
     }else{
-      if(inCircle(e.clientX,e.clientY,fireBtn1())){fireHeld=e.pointerId;wantAttack=true;}
-      else if(!joy.active){joy.active=true;joy.id=e.pointerId;joy.ox=e.clientX;joy.oy=e.clientY;joy.dx=0;joy.dy=0;}
+      if(e.clientX<W*0.5&&!joy.active){joy.active=true;joy.id=e.pointerId;joy.ox=e.clientX;joy.oy=e.clientY;joy.dx=0;joy.dy=0;}
+      else wantAttack=true;
     }
   }else if(mode==='board'&&(gameMode==='hotseat'||turnSide===playerSide)){
     boardTap(e.clientX,e.clientY);
@@ -818,8 +806,6 @@ wrap.addEventListener('pointermove',e=>{
 function endPointer(e){
   if(joy.active&&e.pointerId===joy.id){joy.active=false;joy.dx=0;joy.dy=0;}
   if(joy2.active&&e.pointerId===joy2.id){joy2.active=false;joy2.dx=0;joy2.dy=0;}
-  if(fireHeld===e.pointerId)fireHeld=null;
-  if(fireHeld2===e.pointerId)fireHeld2=null;
 }
 wrap.addEventListener('pointerup',endPointer);
 wrap.addEventListener('pointercancel',endPointer);
@@ -1044,26 +1030,6 @@ function drawArena(){
     ctx.fillStyle='rgba(220,220,230,0.35)';
     ctx.beginPath();ctx.arc(j.ox+j.dx,j.oy+j.dy,16,0,7);ctx.fill();
   }
-  // fire buttons (touch)
-  if(!autoAttack&&'ontouchstart' in window){
-    const btns=gameMode==='hotseat'?[[fireBtn1(),A.player],[fireBtn2(),A.enemy]]:[[fireBtn1(),A.player]];
-    for(const [b,f] of btns){
-      const ready=f.cdTimer<=0;
-      ctx.fillStyle=ready?'rgba(201,79,62,0.32)':'rgba(90,95,110,0.22)';
-      ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,7);ctx.fill();
-      ctx.strokeStyle=ready?'rgba(228,220,196,0.7)':'rgba(90,95,110,0.5)';
-      ctx.lineWidth=2;
-      ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,7);ctx.stroke();
-      if(!ready){
-        ctx.strokeStyle='rgba(228,220,196,0.9)';
-        ctx.beginPath();ctx.arc(b.x,b.y,b.r-6,-Math.PI/2,-Math.PI/2+(1-f.cdTimer/f.attackCD)*Math.PI*2);ctx.stroke();
-      }
-      ctx.lineWidth=1;
-      ctx.fillStyle='rgba(232,228,216,0.85)';
-      ctx.font='11px Georgia';ctx.textAlign='center';
-      ctx.fillText('STRIKE',b.x,b.y+4);ctx.textAlign='left';
-    }
-  }
 }
 
 // ================= LOOP =================
@@ -1103,7 +1069,6 @@ document.getElementById('pickHotseat').onclick=()=>{audioInit();startGame('light
 document.getElementById('endBtn').onclick=()=>{if(endAction)endAction();};
 document.getElementById('menuBtn').onclick=()=>{document.getElementById('end').classList.add('hidden');showMenu();};
 document.getElementById('mute').onclick=function(){muted=!muted;this.textContent='sound: '+(muted?'off':'on');};
-document.getElementById('autoBtn').onclick=function(){autoAttack=!autoAttack;this.textContent='auto: '+(autoAttack?'on':'off');};
 
 loadGlory();
 renderLedger();
