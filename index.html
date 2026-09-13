@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Arkonia — Prototype v9: Creatures</title>
+<title>Arkonia — Prototype v11: Full Armies</title>
 <style>
   :root{ --ink:#e7dfc9; --field:#171a21; --lightc:#e7dfc9; --darkc:#a63a2e; --gilt:#c9a45a; --dim:#6b7180; }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -81,21 +81,22 @@
 
 <div class="overlay" id="menu">
   <h1>ARKONIA</h1>
-  <p class="sub">Prototype v9 — the First Forms take their creature shapes: galloping unicorns, wing-beating dragons, striding knights. Bone and garnet on lacquered moonlight. Six champions per side, leader-casters with spells, and a Field that breathes. Hold all five power points or destroy the enemy army.</p>
+  <p class="sub">Prototype v11 — full armies take the Field. Eighteen champions a side, eight kinds each, two ranks deep: pawns forward, archers and manticores on the flanks, the caster held at center. Sixteen unique champions in classic arcade pixels. Hold all five power points or destroy the enemy army.</p>
   <div class="pick">
     <button class="light-side" id="pickLight">
       <span class="champ-name">Light</span>
-      <span class="champ-desc">Knights &middot; Unicorns &middot; Golems<br>led by the Wizard</span>
+      <span class="champ-desc">Knights &middot; Archers &middot; Valkyries<br>Golems &middot; Unicorns<br>Phoenix &middot; Gryphon<br>led by the Wizard</span>
     </button>
     <button class="dark-side" id="pickDark">
       <span class="champ-name">Dark</span>
-      <span class="champ-desc">Banshees &middot; Djinn &middot; Dragons<br>led by the Sorceress</span>
+      <span class="champ-desc">Goblins &middot; Manticores &middot; Trolls<br>Basilisks &middot; Banshees<br>Djinn &middot; Dragon<br>led by the Sorceress</span>
     </button>
   </div>
   <div style="margin-bottom:22px"><button class="big" id="pickHotseat">Two Binders — hotseat</button></div>
   <p id="ledger" style="color:#8a835f;font-size:12px;line-height:1.6;margin-bottom:18px"></p>
   <p class="controls-note">
     Board: tap a piece, tap a highlighted square. Land on an enemy to challenge.<br>
+    Eighteen a side: pawns forward (knights, goblins), ranged on the back flanks, the caster held at center.<br>
     Casters hold four spells, once each: Teleport, Revive, Imprison, Shift Time. The enemy caster casts too.<br>Wounds persist after battle and heal each turn — faster on ground that favors you. Hunt the wounded; shelter your own.<br>
     Arena vs AI — touch: drag anywhere to move; tap or hold the STRIKE button to attack — or flip 'auto' on and just pilot. Keys: WASD + Space.<br>
     Arena hotseat — Light: WASD + Space. Dark: Arrows + Enter. Touch: Light drags in the bottom half with a STRIKE button bottom-right; Dark drags in the top half with a STRIKE button top-right.<br>
@@ -119,6 +120,7 @@ function resize(){
   W=window.innerWidth;H=window.innerHeight;
   cv.width=W*DPR;cv.height=H*DPR;
   ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.imageSmoothingEnabled=false;
   layoutBoard();
 }
 window.addEventListener('resize',resize);
@@ -161,19 +163,51 @@ const SFX={
   cast(){tone(500,900,0.3,'triangle',0.12);tone(900,500,0.3,'triangle',0.08,0,0.15);},
   win(){tone(392,392,0.12,'sine',0.15);setTimeout(()=>tone(523,523,0.12,'sine',0.15),130);setTimeout(()=>tone(659,659,0.22,'sine',0.16),260);},
   lose(){tone(330,330,0.15,'sine',0.13);setTimeout(()=>tone(262,262,0.15,'sine',0.13),170);setTimeout(()=>tone(196,196,0.3,'sine',0.14),340);},
+  // ---- v11 gaits: each new champion's stride is its voice ----
+  archerStep(){tone(340,210,0.04,'square',0.04,1100);noise(0.025,0.035,3600,'highpass');},
+  valkyrieStep(){tone(540,470,0.07,'triangle',0.045,1600);noise(0.07,0.03,2400,'highpass');},
+  phoenixStep(){noise(0.09,0.045,2800,'bandpass');tone(900,1220,0.07,'sine',0.03);},
+  gryphonStep(){noise(0.15,0.06,820);tone(230,170,0.11,'triangle',0.055,700);},
+  goblinStep(){tone(250,140,0.05,'square',0.055,800);noise(0.035,0.05,2800,'highpass');},
+  manticoreStep(){tone(150,95,0.12,'sine',0.1,380);noise(0.1,0.06,560);},
+  trollStep(){tone(44,24,0.46,'sine',0.26,150);noise(0.42,0.15,130);},
+  basiliskStep(){noise(0.18,0.05,680,'bandpass');tone(120,92,0.16,'sine',0.05,300);},
+  // ---- v11 attack signatures ----
+  arrow(){noise(0.07,0.13,5200,'highpass');tone(1700,700,0.07,'sawtooth',0.07,4000);},
+  spear(){tone(620,240,0.16,'triangle',0.12,1800);noise(0.1,0.08,3000,'highpass');},
+  flameburst(){tone(300,80,0.5,'sawtooth',0.17,900);noise(0.45,0.18,1400);tone(920,220,0.34,'sine',0.07);},
+  claw(){noise(0.09,0.2,6000,'highpass');tone(720,260,0.08,'square',0.06,3000);},
+  club(){tone(180,70,0.14,'square',0.2,600);noise(0.1,0.14,900);},
+  spikes(){for(let i=0;i<3;i++)tone(920-i*130,420,0.1,'sawtooth',0.07,3000,i*0.045);noise(0.12,0.08,4200,'highpass');},
+  fist(){tone(110,40,0.26,'sine',0.28,260);noise(0.2,0.2,420);},
+  gazeWind(){tone(200,920,0.24,'sine',0.07,2400);},
+  gaze(){tone(1650,1650,0.13,'sine',0.13);noise(0.14,0.09,5200,'bandpass');tone(2400,900,0.18,'triangle',0.06);},
 };
 
 // ================= CHAMPION KITS =================
 const KITS={
-  knight: {side:'light',hp:60, speed:300,dmg:9, cd:0.42,style:'melee', radius:16,move:3,fly:false,step:'knightStep', glyph:'square',  leader:false},
+  // ---- LIGHT (18 pieces, 8 kinds) ----
+  knight: {side:'light',hp:60, speed:300,dmg:9, cd:0.42,style:'melee', reach:62,lungeV:230,lungeT:0.12,radius:16,move:3,fly:false,step:'knightStep', glyph:'square',  leader:false},
+  archer: {side:'light',hp:50, speed:310,dmg:8, cd:0.7, style:'ranged',projSpeed:420,projR:4, radius:14,move:3,fly:false,step:'archerStep', glyph:'chevron', leader:false},
+  valkyrie:{side:'light',hp:80,speed:260,dmg:14,cd:1.2, style:'ranged',projSpeed:340,projR:6, radius:16,move:3,fly:true, step:'valkyrieStep',glyph:'chevron',leader:false},
   unicorn:{side:'light',hp:65, speed:320,dmg:11,cd:1.1, style:'ranged',projSpeed:480,projR:6, radius:16,move:4,fly:false,step:'unicornStep',glyph:'chevron', leader:false},
   golem:  {side:'light',hp:150,speed:95, dmg:30,cd:2.2, style:'ranged',projSpeed:220,projR:12,radius:26,move:2,fly:false,step:'golemStep',glyph:'circle', leader:false},
+  gryphon:{side:'light',hp:95, speed:290,dmg:12,cd:0.6, style:'melee', reach:74,lungeV:400,lungeT:0.22,radius:18,move:4,fly:true, step:'gryphonStep',glyph:'chevron',leader:false},
+  phoenix:{side:'light',hp:70, speed:340,dmg:22,cd:1.8, style:'pulse', pulseR:110,pulseT:0.42,radius:17,move:5,fly:true, step:'phoenixStep',glyph:'star', leader:false},
   wizard: {side:'light',hp:55, speed:190,dmg:14,cd:1.0, style:'ranged',projSpeed:390,projR:7, radius:15,move:3,fly:true, step:'wizardStep',glyph:'star',  leader:true},
-  banshee:{side:'dark', hp:70, speed:275,dmg:6, cd:0.55,style:'pulse', pulseR:95,radius:15,move:3,fly:true, step:'bansheeStep',glyph:'diamond',leader:false},
+  // ---- DARK (18 pieces, 8 kinds) ----
+  goblin: {side:'dark', hp:52, speed:285,dmg:8, cd:0.45,style:'melee', reach:56,lungeV:200,lungeT:0.12,radius:14,move:3,fly:false,step:'goblinStep', glyph:'diamond',leader:false},
+  manticore:{side:'dark',hp:85,speed:240,dmg:6, cd:1.4, style:'spread',projSpeed:300,projR:5, spread:3,spreadArc:0.30,radius:18,move:3,fly:false,step:'manticoreStep',glyph:'triangle',leader:false},
+  basilisk:{side:'dark',hp:75, speed:180,dmg:10,cd:2.0, style:'gaze',  gazeWind:0.25,gazeLen:520,radius:17,move:3,fly:false,step:'basiliskStep',glyph:'swirl',leader:false},
+  banshee:{side:'dark', hp:70, speed:275,dmg:6, cd:0.55,style:'pulse', pulseR:95,pulseT:0.30,radius:15,move:3,fly:true, step:'bansheeStep',glyph:'diamond',leader:false},
+  troll:  {side:'dark', hp:160,speed:100,dmg:24,cd:1.6, style:'melee', reach:78,lungeV:120,lungeT:0.10,regen:1.5,radius:26,move:2,fly:false,step:'trollStep',glyph:'circle',leader:false},
   djinn:  {side:'dark', hp:75, speed:230,dmg:12,cd:0.9, style:'ranged',projSpeed:260,projR:11,radius:17,move:4,fly:true, step:'djinnStep',glyph:'swirl',  leader:false},
   dragon: {side:'dark', hp:110,speed:130,dmg:16,cd:2.2, style:'ranged',projSpeed:310,projR:9, radius:24,move:4,fly:true, step:'dragonStep',glyph:'triangle',leader:false},
   sorceress:{side:'dark',hp:55,speed:190,dmg:14,cd:1.0, style:'ranged',projSpeed:390,projR:7, radius:15,move:3,fly:true, step:'wizardStep',glyph:'star',  leader:true},
 };
+// per-champion gait cadence (seconds between footfalls / wingbeats)
+const STEP_IV={knight:0.19,archer:0.20,valkyrie:0.34,unicorn:0.22,golem:0.70,gryphon:0.42,phoenix:0.26,wizard:0.35,
+               goblin:0.18,manticore:0.26,basilisk:0.30,banshee:0.30,troll:0.85,djinn:0.40,dragon:0.55,sorceress:0.35};
 let LUM_HP_BONUS=0.20;
 let CYCLE_TURNS=14;
 // combat juice constants
@@ -196,7 +230,7 @@ function buildTuning(){
   addSlider('cycle','Cycle length (turns)',CYCLE_TURNS,6,30,1);
   for(const k in KITS){
     const kit=KITS[k];
-    const hd=document.createElement('h3');hd.textContent=k.charAt(0).toUpperCase()+k.slice(1);slidersDiv.appendChild(hd);
+    const hd=document.createElement('h3');hd.textContent=k.charAt(0).toUpperCase()+k.slice(1)+'  ·  '+kit.side;slidersDiv.appendChild(hd);
     addSlider(k+'_hp','HP',kit.hp,20,300,5);
     addSlider(k+'_speed','Speed',kit.speed,60,420,10);
     addSlider(k+'_dmg','Damage',kit.dmg,2,60,1);
@@ -280,11 +314,18 @@ function newBoard(){
     cells[c][r]={lum,piece:null};
   }}
   const pieces=[];
-  const lightCol=['golem','unicorn','knight','knight','wizard','knight','knight','unicorn','golem'];
-  const darkCol=['dragon','djinn','banshee','banshee','sorceress','banshee','banshee','djinn','dragon'];
+  // Two ranks a side. Light holds columns 0 (back) and 1 (front); Dark mirrors on 8 and 7.
+  // Pawns fill the front rank. The back rank is flanked by the ranged pair, caster at center,
+  // the two singles set symmetrically either side of it. Rows pair by role across the Field:
+  // archer/manticore, golem/troll, unicorn/basilisk, gryphon/dragon, wizard/sorceress, phoenix/djinn.
+  const lightBack =['archer','golem','unicorn','gryphon','wizard','phoenix','unicorn','golem','archer'];
+  const lightFront=['valkyrie','knight','knight','knight','knight','knight','knight','knight','valkyrie'];
+  const darkBack  =['manticore','troll','basilisk','dragon','sorceress','djinn','basilisk','troll','manticore'];
+  const darkFront =['banshee','goblin','goblin','goblin','goblin','goblin','goblin','goblin','banshee'];
+  const place=(kind,c,r)=>{const p=makePiece(kind,c,r);pieces.push(p);cells[c][r].piece=p;};
   for(let r=0;r<ROWS;r++){
-    const lp=makePiece(lightCol[r],0,r);pieces.push(lp);cells[0][r].piece=lp;
-    const dp=makePiece(darkCol[r],COLS-1,r);pieces.push(dp);cells[COLS-1][r].piece=dp;
+    place(lightBack[r],0,r);        place(lightFront[r],1,r);
+    place(darkBack[r],COLS-1,r);    place(darkFront[r],COLS-2,r);
   }
   return {cells,pieces};
 }
@@ -363,7 +404,8 @@ function endTurn(){
   // wounds heal between fights — faster on favored ground
   for(const p of board.pieces){
     if(!p.alive||p.hpFrac>=1)continue;
-    p.hpFrac=Math.min(1,p.hpFrac+0.10+(onFavoredSquare(p)?0.08:0));
+    const rg=KITS[p.kind].regen||1;   // trolls knit their wounds faster than anything on the Field
+    p.hpFrac=Math.min(1,p.hpFrac+(0.10+(onFavoredSquare(p)?0.08:0))*rg);
   }
   turnSide=turnSide==='light'?'dark':'light';
   checkBoardVictory();
@@ -571,6 +613,7 @@ function makeFighter(piece,isPlayer,hpMult,ctrl){
     maxhp:Math.round(kit.hp*hpMult),hp:Math.max(1,Math.round(kit.hp*hpMult*(piece.hpFrac!==undefined?piece.hpFrac:1))),
     speed:kit.speed,radius:kit.radius,attackCD:kit.cd,cdTimer:0,stepTimer:0,
     slashTimer:0,lungeTimer:0,pulseTimer:0,chargeTimer:0,chargeHit:false,blinkTimer:2.2,walkPhase:0,animT:0,
+    gazeT:0,gazeAng:0,
     stun:0,iframes:0,flash:0,
     ai:{strafeDir:Math.random()<.5?1:-1,strafeTimer:0,retreatTimer:0}
   };
@@ -596,7 +639,7 @@ function startArena(){
   A={
     player:makeFighter(pPiece,pCtrl!=='ai',bonusFor(pPiece.side),pCtrl),
     enemy:makeFighter(ePiece,eCtrl!=='ai',bonusFor(ePiece.side),eCtrl),
-    projectiles:[],hitFx:[],pillars:[],lum,over:false
+    projectiles:[],hitFx:[],beams:[],pillars:[],lum,over:false
   };
   A.player.x=W*0.5;A.player.y=H*0.82;A.player.facing=-Math.PI/2;
   A.enemy.x=W*0.5;A.enemy.y=H*0.16;A.enemy.facing=Math.PI/2;
@@ -613,21 +656,48 @@ function arenaAttack(c,target){
   const ang=Math.atan2(target.y-c.y,target.x-c.x);
   c.facing=ang;
   if(kit.style==='melee'){
-    SFX.slash();c.slashTimer=0.18;c.lungeTimer=0.12;
-    c.vx+=Math.cos(ang)*230;c.vy+=Math.sin(ang)*230;
-    const reach=62,d=Math.hypot(target.x-c.x,target.y-c.y);
+    if(c.kind==='goblin')SFX.club();
+    else if(c.kind==='troll')SFX.fist();
+    else if(c.kind==='gryphon')SFX.claw();
+    else SFX.slash();
+    const lv=kit.lungeV||230, lt=kit.lungeT||0.12, reach=kit.reach||62;
+    c.slashTimer=0.18;c.lungeTimer=lt;
+    c.vx+=Math.cos(ang)*lv;c.vy+=Math.sin(ang)*lv;
+    const d=Math.hypot(target.x-c.x,target.y-c.y);
     if(d<reach+target.radius)arenaDamage(target,kit.dmg,c);
   }else if(kit.style==='charge'){
     SFX.charge();c.chargeTimer=0.32;c.chargeHit=false;c.lungeTimer=0.32;
     c.vx+=Math.cos(ang)*560;c.vy+=Math.sin(ang)*560;
   }else if(kit.style==='pulse'){
-    SFX.scream();c.pulseTimer=0.3;
+    if(c.kind==='phoenix'){SFX.flameburst();c.animT=0.5;}else SFX.scream();
+    c.pulseTimer=kit.pulseT||0.3;
     const d=Math.hypot(target.x-c.x,target.y-c.y);
     if(d<kit.pulseR+target.radius)arenaDamage(target,kit.dmg,c);
+  }else if(kit.style==='spread'){
+    // manticore: a fan of tail spikes. Each spike lands on its own, so range and angle
+    // decide whether one bites or all three do.
+    SFX.spikes();
+    const n=kit.spread||3, arcStep=kit.spreadArc||0.30;
+    const d=Math.hypot(target.x-c.x,target.y-c.y);
+    const tl=d/kit.projSpeed*0.5;
+    const aim=Math.atan2(target.y+target.vy*tl-c.y,target.x+target.vx*tl-c.x);
+    for(let i=0;i<n;i++){
+      const a2=aim+(i-(n-1)/2)*arcStep;
+      A.projectiles.push({x:c.x+Math.cos(a2)*(c.radius+8),y:c.y+Math.sin(a2)*(c.radius+8),
+        vx:Math.cos(a2)*kit.projSpeed,vy:Math.sin(a2)*kit.projSpeed,r:kit.projR,from:c,dmg:kit.dmg,life:2.4,kind:c.kind,light:true});
+    }
+  }else if(kit.style==='gaze'){
+    // basilisk: the angle locks the instant the gaze starts. Read the telegraph, step off the line.
+    SFX.gazeWind();
+    c.gazeT=kit.gazeWind||0.25;
+    c.gazeAng=ang;
+    c.animT=(kit.gazeWind||0.25)+0.3;
   }else{
     if(c.kind==='dragon')SFX.fireball();
     else if(c.kind==='golem')SFX.boulder();
     else if(c.kind==='djinn')SFX.whirl();
+    else if(c.kind==='archer')SFX.arrow();
+    else if(c.kind==='valkyrie')SFX.spear();
     else SFX.bolt();
     const d=Math.hypot(target.x-c.x,target.y-c.y);
     const tl=d/kit.projSpeed*0.6;
@@ -637,18 +707,28 @@ function arenaAttack(c,target){
       vx:Math.cos(a2)*kit.projSpeed,vy:Math.sin(a2)*kit.projSpeed,r:kit.projR,from:c,dmg:kit.dmg,life:3.2,kind:c.kind});
   }
 }
-function arenaDamage(target,amount,from){
-  if(A.over||target.iframes>0)return;
+// closest approach of a segment to a point — the gaze is a hitscan line, not a projectile
+function segCircle(x1,y1,x2,y2,cx,cy,r){
+  const abx=x2-x1,aby=y2-y1,acx=cx-x1,acy=cy-y1;
+  const len2=abx*abx+aby*aby;
+  let t=(acx*abx+acy*aby)/(len2||1);t=Math.max(0,Math.min(1,t));
+  return Math.hypot(x1+abx*t-cx,y1+aby*t-cy)<r;
+}
+// light hits (spike volleys) grant no invulnerability window, so a full fan can land —
+// in exchange they barely stun and barely shove.
+function arenaDamage(target,amount,from,light){
+  if(A.over)return;
+  if(!light&&target.iframes>0)return;
   target.hp-=amount;
-  target.stun=STUN_TIME;
-  target.iframes=IFRAME_TIME;
-  target.flash=0.12;
+  target.stun=light?0.05:STUN_TIME;
+  if(!light)target.iframes=IFRAME_TIME;
+  target.flash=light?0.07:0.12;
   // knockback away from the source
   const ang=Math.atan2(target.y-from.y,target.x-from.x);
-  const kb=KB_BASE+amount*6;
+  const kb=(light?KB_BASE*0.35:KB_BASE)+amount*(light?2:6);
   target.vx+=Math.cos(ang)*kb;target.vy+=Math.sin(ang)*kb;
-  shake.t=0.18;shake.mag=Math.min(10,2+amount*0.25);
-  A.hitFx.push({x:target.x,y:target.y,t:0.25,max:0.25,r:target.radius+10});
+  shake.t=light?0.1:0.18;shake.mag=Math.min(10,(light?1:2)+amount*(light?0.15:0.25));
+  A.hitFx.push({x:target.x,y:target.y,t:light?0.16:0.25,max:light?0.16:0.25,r:target.radius+(light?5:10)});
   if(target.hp<=0){SFX.death();shake.t=0.3;shake.mag=10;arenaEnd(from,target);}
   else SFX.hit();
 }
@@ -688,24 +768,33 @@ function arenaAI(c,target,dt){
   const dx=target.x-c.x,dy=target.y-c.y,d=Math.hypot(dx,dy);
   const ux=dx/(d||1),uy=dy/(d||1);
   c.ai.strafeTimer-=dt;
+  c.ai.age=(c.ai.age||0)+dt;
   if(c.ai.strafeTimer<=0){c.ai.strafeDir*=-1;c.ai.strafeTimer=1+Math.random()*1.6;}
   let mx=0,my=0;
-  if(kit.style==='ranged'){
-    const ideal=c.kind==='golem'?300:c.kind==='djinn'?230:260;
+  const standoff=kit.style==='ranged'||kit.style==='spread'||kit.style==='gaze';
+  if(standoff){
+    const IDEAL={golem:300,djinn:230,archer:300,valkyrie:250,manticore:250,basilisk:330};
+    // the crowd wants blood: a standoff champion that has not settled it tightens the range
+    const press=Math.min(1,c.ai.age/16);
+    const ideal=(IDEAL[c.kind]||260)*(1-0.5*press);
     if(d>ideal+50){mx+=ux;my+=uy;}
     else if(d<ideal-60){mx-=ux;my-=uy;}
     mx+=-uy*c.ai.strafeDir*0.8;my+=ux*c.ai.strafeDir*0.8;
-    if(c.cdTimer<=0&&d<560&&arenaLineClear(c,target))arenaAttack(c,target);
+    const maxR=kit.style==='gaze'?(kit.gazeLen||520):560;
+    if(c.cdTimer<=0&&c.gazeT<=0&&d<maxR&&arenaLineClear(c,target))arenaAttack(c,target);
   }else{
     c.ai.retreatTimer-=dt;
-    const range=kit.style==='pulse'?kit.pulseR*0.8:kit.style==='charge'?190:60;
+    const range=kit.style==='pulse'?kit.pulseR*0.8:kit.style==='charge'?190:(kit.reach||62)-2;
     if(c.ai.retreatTimer>0){mx-=ux;my-=uy;mx+=-uy*c.ai.strafeDir;my+=ux*c.ai.strafeDir;}
     else{
       mx+=ux;my+=uy;
       if(kit.style!=='charge'&&d<range*2){mx+=-uy*c.ai.strafeDir*0.5;my+=ux*c.ai.strafeDir*0.5;}
       if(c.cdTimer<=0&&d<range+target.radius){
         arenaAttack(c,target);
-        if(kit.style==='melee'&&Math.random()<0.5)c.ai.retreatTimer=0.7+Math.random()*0.5;
+        // the quick ones dance out after a swing; a troll has nowhere to be
+        if(kit.style==='melee'&&c.speed>140&&Math.random()<0.5)c.ai.retreatTimer=0.7+Math.random()*0.5;
+        // a long-cooldown burst is hit-and-run: the phoenix dives, blooms, leaves
+        if(kit.style==='pulse'&&kit.cd>=1.2)c.ai.retreatTimer=kit.cd*0.55;
         if(kit.style==='charge')c.ai.retreatTimer=0.5+Math.random()*0.4;
       }
     }
@@ -746,8 +835,9 @@ function arenaMove(c,dt){
       if(autoAttack&&c.cdTimer<=0){
         const d=Math.hypot(other.x-c.x,other.y-c.y);
         const kit=KITS[c.kind];
-        const rng=kit.style==='melee'?70:kit.style==='pulse'?kit.pulseR:kit.style==='charge'?200:520;
-        if(d<rng+other.radius&&(kit.style!=='ranged'||arenaLineClear(c,other)))atk=true;
+        const rng=kit.style==='melee'?(kit.reach||62)+8:kit.style==='pulse'?kit.pulseR:kit.style==='charge'?200:kit.style==='gaze'?(kit.gazeLen||520):520;
+        const needsLine=(kit.style==='ranged'||kit.style==='spread'||kit.style==='gaze');
+        if(d<rng+other.radius&&(!needsLine||arenaLineClear(c,other)))atk=true;
       }
     }else{ // p2
       if(keys['ArrowUp'])my-=1; if(keys['ArrowDown'])my+=1;
@@ -764,7 +854,7 @@ function arenaMove(c,dt){
   const cap=c.speed*(c.lungeTimer>0?1.9:1);
   if(sp>cap){c.vx*=cap/sp;c.vy*=cap/sp;}
   c.x+=c.vx*dt;c.y+=c.vy*dt;
-  const fric=(c.kind==='banshee'||c.kind==='djinn')?0.02:0.0004;
+  const fric=(c.kind==='banshee'||c.kind==='djinn'||c.kind==='phoenix')?0.02:0.0004;
   c.vx*=Math.pow(fric,dt);c.vy*=Math.pow(fric,dt);
   const pad=c.radius+6;
   c.x=Math.max(pad,Math.min(W-pad,c.x));
@@ -779,6 +869,19 @@ function arenaMove(c,dt){
     if(d<c.radius+other.radius+6){
       c.chargeHit=true;
       arenaDamage(other,KITS[c.kind].dmg,c);
+    }
+  }
+  // basilisk gaze: the windup runs down, then the line fires where it was aimed
+  if(c.gazeT>0&&!A.over){
+    c.gazeT-=dt;
+    if(c.gazeT<=0){
+      c.gazeT=0;
+      const gk=KITS[c.kind], len=gk.gazeLen||520;
+      const ex=c.x+Math.cos(c.gazeAng)*len, ey=c.y+Math.sin(c.gazeAng)*len;
+      A.beams.push({x1:c.x,y1:c.y,x2:ex,y2:ey,t:0.16,max:0.16});
+      SFX.gaze();
+      if(segCircle(c.x,c.y,ex,ey,other.x,other.y,other.radius)&&arenaLineClear(c,other))
+        arenaDamage(other,gk.dmg,c);
     }
   }
   // djinn passive blink
@@ -812,8 +915,7 @@ function arenaMove(c,dt){
   c.stepTimer-=dt;
   if(moving&&c.stepTimer<=0){
     SFX[KITS[c.kind].step]();
-    const iv={knight:0.19,unicorn:0.22,banshee:0.3,djinn:0.4,dragon:0.55,golem:0.7,wizard:0.35,sorceress:0.35};
-    c.stepTimer=iv[c.kind]||0.35;
+    c.stepTimer=STEP_IV[c.kind]||0.35;
   }
 }
 function arenaProjectiles(dt){
@@ -823,8 +925,8 @@ function arenaProjectiles(dt){
     let dead=p.life<=0||p.x<0||p.x>W||p.y<0||p.y>H;
     for(const pl of A.pillars){if(Math.hypot(p.x-pl.x,p.y-pl.y)<pl.r+p.r)dead=true;}
     const target=p.from===A.player?A.enemy:A.player;
-    if(!dead&&Math.hypot(p.x-target.x,p.y-target.y)<p.r+target.radius&&target.iframes<=0){
-      arenaDamage(target,p.dmg,p.from);dead=true;
+    if(!dead&&Math.hypot(p.x-target.x,p.y-target.y)<p.r+target.radius&&(p.light||target.iframes<=0)){
+      arenaDamage(target,p.dmg,p.from,p.light);dead=true;
     }
     if(dead)A.projectiles.splice(i,1);
   }
@@ -913,7 +1015,8 @@ function boardTap(px,py){
   if(piece&&piece.side===humanSide()){
     if(isImprisoned(piece)){SFX.lose&&tone(180,120,0.15,'sine',0.1);selected=null;reachable=[];hideSpellUI();return;}
     selected=piece;reachable=reachableSquares(piece);SFX.select();
-    if(KITS[piece.kind].leader&&(spells[humanSide()].teleport||spells[humanSide()].revive))showSpellUI();
+    const sp=spells[humanSide()];
+    if(KITS[piece.kind].leader&&(sp.teleport||sp.revive||sp.imprison||sp.shift))showSpellUI();
     else hideSpellUI();
   }else{selected=null;reachable=[];hideSpellUI();}
 }
@@ -952,8 +1055,12 @@ function drawBoard(){
     ctx.strokeRect(x+selected.c*cell+2,y+selected.r*cell+2,cell-5,cell-5);
   }
   if(spellMode==='im-pick'){
-    if(piece&&piece.side!==humanSide()){castImprison(humanSide(),piece);}
-    return;
+    // ring every enemy piece so the caster can see what it may bind
+    for(const p of board.pieces){
+      if(!p.alive||p.side===humanSide())continue;
+      ctx.strokeStyle='rgba(159,176,196,0.8)';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(x+p.c*cell+cell/2,y+p.r*cell+cell/2,cell*0.40,0,7);ctx.stroke();ctx.lineWidth=1;
+    }
   }
   if(spellMode==='rv-dest'){
     const L=leaderOf(humanSide());
@@ -1205,11 +1312,806 @@ function drawCreature(kind,color,s,walk,anim,t,mirror){
   ctx.restore();
 }
 
+
+// ================= PIXEL SPRITES (original designs, 80s arcade style) =================
+// chars: '.'=empty  '#'=side color  'x'=dark detail  'g'=gilt  'w'=bright  'm'=moonlight
+const SPRITES={
+knight:{
+a:[
+"......####......",
+"......#xx#......",
+"......####......",
+".w.....##.......",
+"..w..######.##..",
+"...w.######.###.",
+"....w######.###.",
+".....######.##..",
+"......####......",
+".......##.......",
+"......#..#......",
+".....#....#.....",
+".....#....#.....",
+"....##....##...."],
+b:[
+"......####......",
+"......#xx#......",
+"......####......",
+".w.....##.......",
+"..w..######.##..",
+"...w.######.###.",
+"....w######.###.",
+".....######.##..",
+"......####......",
+".......##.......",
+"......#..#......",
+"......#..#......",
+"......#..#......",
+".....##..##....."],
+atk:[
+"......####......",
+"......#xx#......",
+"......####......",
+".......##.......",
+".....######.....",
+".....######wwwww",
+".....######w....",
+".....######.....",
+"......####......",
+".......##.......",
+"......#..#......",
+".....#....#.....",
+"....#......#....",
+"...##......##..."]},
+unicorn:{
+a:[
+".............gg.",
+"............g...",
+"...........####.",
+"...........#x#..",
+".#.........##...",
+"##..##########..",
+".##############.",
+".##############.",
+"..############..",
+"...#..#..#..#...",
+"...#..#..#..#...",
+"..##..#..#..##..",
+"................",
+"................"],
+b:[
+".............gg.",
+"............g...",
+"...........####.",
+"...........#x#..",
+".#.........##...",
+"##..##########..",
+".##############.",
+".##############.",
+"..############..",
+"..#..#....#..#..",
+".#...#.....#..#.",
+".#..##.....##.#.",
+"................",
+"................"],
+atk:[
+"................",
+"...........gggg.",
+"...........####g",
+"...........#x#..",
+".#.........##...",
+"##..##########..",
+".##############.",
+".##############.",
+"..############..",
+"..#..#....#..#..",
+".#...#.....#..#.",
+".#..##.....##.#.",
+"................",
+"................"]},
+golem:{
+a:[
+"....########....",
+"....#xx##xx#....",
+"....########....",
+"..############..",
+".##############.",
+".####x######x##.",
+".#####x####x###.",
+".##############.",
+".##############.",
+"..####....####..",
+"..####....####..",
+"..####....####..",
+"..###......###..",
+"................"],
+b:[
+"....########....",
+"....#xx##xx#....",
+"....########....",
+"..############..",
+".##############.",
+".####x######x##.",
+".#####x####x###.",
+".##############.",
+".##############.",
+"..####....####..",
+"..####....####..",
+"...####..####...",
+"...###....###...",
+"................"],
+atk:[
+"..........####..",
+"....######.####.",
+"....#xx##x.####.",
+"....########....",
+"..############..",
+".############...",
+".####x######....",
+".#####x####.....",
+".##############.",
+"..####....####..",
+"..####....####..",
+"..####....####..",
+"..###......###..",
+"................"]},
+wizard:{
+a:[
+"..............g.",
+"......####....#.",
+"......#xx#....#.",
+".......##.....#.",
+".....######...#.",
+"....#######...#.",
+"....#######.###.",
+"...#########....",
+"...##########...",
+"..###########...",
+"..############..",
+".#############..",
+".#############..",
+"................"],
+b:[
+"..............g.",
+"......####....#.",
+"......#xx#....#.",
+".......##.....#.",
+".....######...#.",
+"....#######...#.",
+"....#######.###.",
+"...#########....",
+"...##########...",
+"..###########...",
+"..############..",
+"..############..",
+".##############.",
+"................"],
+atk:[
+"...........gg...",
+"......####.gg#..",
+"......#xx#..#...",
+".......##..#....",
+".....#######....",
+"....#######.....",
+"....########....",
+"...#########....",
+"...##########...",
+"..###########...",
+"..############..",
+".#############..",
+".#############..",
+"................"]},
+banshee:{
+a:[
+"......####......",
+"......#xx#......",
+"......####......",
+".....######.....",
+"....########....",
+"....########....",
+"...##########...",
+"...##########...",
+"...####.#####...",
+"...###..####....",
+"....##..###.....",
+"....#....#......",
+"................",
+"................"],
+b:[
+"......####......",
+"......#xx#......",
+"......####......",
+".....######.....",
+"....########....",
+"....########....",
+"...##########...",
+"...##########...",
+"...#####.####...",
+"....####..###...",
+".....###..##....",
+"......#....#....",
+"................",
+"................"],
+atk:[
+".....######.....",
+".....#xxxx#.....",
+".....######.....",
+"....########....",
+"...##########...",
+"..############..",
+"..############..",
+".##############.",
+".#####..######..",
+"..####..#####...",
+"...##....###....",
+"...#......#.....",
+"................",
+"................"]},
+djinn:{
+a:[
+"......####......",
+"......#xx#......",
+".......##.......",
+"....########....",
+"...##########...",
+"...##########...",
+"....########....",
+".....######.....",
+"......####......",
+".......###......",
+"......###.......",
+".......##.......",
+"........#.......",
+"................"],
+b:[
+"......####......",
+"......#xx#......",
+".......##.......",
+"....########....",
+"...##########...",
+"...##########...",
+"....########....",
+".....######.....",
+"......####......",
+"......###.......",
+".......###......",
+"......##........",
+".......#........",
+"................"],
+atk:[
+"......####......",
+"......#xx#......",
+".......##.......",
+"....##########w.",
+"...###########w.",
+"...##########...",
+"....########....",
+".....######.....",
+"......####......",
+".......###......",
+"......###.......",
+".......##.......",
+"........#.......",
+"................"]},
+dragon:{
+a:[
+"....##..........",
+"...####.....###.",
+"..######....#x##",
+"...####....###..",
+"..########.##...",
+".#############..",
+"###############.",
+".##############.",
+"..############..",
+"...##.....##....",
+"...#.......#....",
+"................",
+"................",
+"................"],
+b:[
+"................",
+"...##.......###.",
+"..####......#x##",
+".######....###..",
+"..########.##...",
+".#############..",
+"###############.",
+".##############.",
+"..############..",
+"...##.....##....",
+"...#.......#....",
+"................",
+"................",
+"................"],
+atk:[
+"............#x##",
+"....##......####",
+"...####....###w.",
+"..######..###.w.",
+"..########.##...",
+".#############..",
+"###############.",
+".##############.",
+"..############..",
+"...##.....##....",
+"...#.......#....",
+"................",
+"................",
+"................"]},
+sorceress:{
+a:[
+"..............m.",
+"......####....#.",
+"......#xx#....#.",
+".......##.....#.",
+".....######...#.",
+"....#######...#.",
+"....#######.###.",
+"...#########....",
+"...##########...",
+"..###########...",
+"..############..",
+".#############..",
+".#############..",
+"................"],
+b:[
+"..............m.",
+"......####....#.",
+"......#xx#....#.",
+".......##.....#.",
+".....######...#.",
+"....#######...#.",
+"....#######.###.",
+"...#########....",
+"...##########...",
+"..###########...",
+"..############..",
+"..############..",
+".##############.",
+"................"],
+atk:[
+"...........mm...",
+"......####.mm#..",
+"......#xx#..#...",
+".......##..#....",
+".....#######....",
+"....#######.....",
+"....########....",
+"...#########....",
+"...##########...",
+"..###########...",
+"..############..",
+".#############..",
+".#############..",
+"................"]},
+archer:{
+a:[
+"......####......",
+"......#xx#......",
+"......####......",
+"......##....w...",
+".....######..w..",
+"....#######..w..",
+"....#######wwwww",
+"....#######..w..",
+".....######..w..",
+"......####..w...",
+"......#..#......",
+".....#....#.....",
+".....#....#.....",
+"....##....##...."],
+b:[
+"......####......",
+"......#xx#......",
+"......####......",
+"......##....w...",
+".....######..w..",
+"....#######..w..",
+"....#######wwwww",
+"....#######..w..",
+".....######..w..",
+"......####..w...",
+"......#..#......",
+"......#..#......",
+"......#..#......",
+".....##..##....."],
+atk:[
+"......####......",
+"......#xx#......",
+"......####......",
+".......##...w...",
+".....######.w...",
+"....#######w....",
+"....######wwwwww",
+"....#######w....",
+".....######.w...",
+"......####..w...",
+"......#..#......",
+".....#....#.....",
+"....#......#....",
+"...##......##..."]},
+valkyrie:{
+a:[
+"...#.....####...",
+"..###....#xx#...",
+".#####...####...",
+"..####....##....",
+"...####..####...",
+"....#########.w.",
+"....#########ww.",
+"....########..w.",
+".....#######....",
+".....###.###....",
+".....##...##....",
+"....##.....##...",
+"................",
+"................"],
+b:[
+".........####...",
+".........#xx#...",
+"..#......####...",
+".####.....##....",
+"..#####..####...",
+"...##########.w.",
+"....#########ww.",
+"....########..w.",
+".....#######....",
+"......######....",
+"......##.##.....",
+".....##...##....",
+"................",
+"................"],
+atk:[
+"...#.....####...",
+"..###....#xx#...",
+".#####...####...",
+"..####....##....",
+"...####..####...",
+"....##########..",
+"....#######wwwww",
+"....########....",
+".....#######....",
+".....###.###....",
+".....##...##....",
+"....##.....##...",
+"................",
+"................"]},
+phoenix:{
+a:[
+"..##.......g....",
+".####.....gg....",
+"..#####...####..",
+"...#####..#x##..",
+"....#####.###...",
+".....#########..",
+"....##########..",
+"...#########....",
+"..####..####....",
+".###.....##.....",
+"###......##.....",
+"................",
+"................",
+"................"],
+b:[
+"...........g....",
+"..........gg....",
+"..........####..",
+"..#.......#x##..",
+".#####....###...",
+"..###########...",
+"...##########...",
+"..####..####....",
+".###.#...###....",
+"##.......##.....",
+"#........##.....",
+"................",
+"................",
+"................"],
+atk:[
+"..g.....g....g..",
+".g###...gg###.g.",
+"g.#####.g####..g",
+"...#####.#x##.g.",
+"..g#####.###..g.",
+".g.##########.g.",
+"g..##########..g",
+".g#########..g..",
+"..####..####.g..",
+".g##.....##..g..",
+"g.#......##...g.",
+"..g.......g.....",
+"................",
+"................"]},
+gryphon:{
+a:[
+"..##............",
+".####......####.",
+"..#####...#x##w.",
+"...####...####..",
+"....#########...",
+"..############..",
+".#############..",
+"..###########...",
+"..##.....##.....",
+".##.......##....",
+"w#.........#w...",
+"................",
+"................",
+"................"],
+b:[
+"...........####.",
+"..#.......#x##w.",
+".####.....####..",
+"..#####..####...",
+"...##########...",
+"..############..",
+".#############..",
+"..###########...",
+"...##...##......",
+"...##...##......",
+"..w#...w#.......",
+"................",
+"................",
+"................"],
+atk:[
+"..##............",
+".####......####.",
+"..#####...#x##..",
+"...####...####w.",
+"....#########.w.",
+"..###########ww.",
+".############w..",
+"..##########w...",
+"..##.....##.....",
+".##.......##....",
+"#...........#...",
+"................",
+"................",
+"................"]},
+goblin:{
+a:[
+"................",
+"................",
+"....#.....#.....",
+"....###.###.....",
+".....#xx#.......",
+".....####...##..",
+"....######.###..",
+"....########....",
+"....######......",
+"....######......",
+"....##..##......",
+"...##....##.....",
+"...#......#.....",
+"................"],
+b:[
+"................",
+"................",
+"....#.....#.....",
+"....###.###.....",
+".....#xx#.......",
+".....####..##...",
+"....######.##...",
+"....#######.....",
+"....######......",
+"....######......",
+".....####.......",
+"....##..##......",
+"...##....#......",
+"................"],
+atk:[
+"................",
+"................",
+"....#.....#.....",
+"....###.###.....",
+".....#xx#.......",
+".....####.......",
+"....######wwww..",
+"....#######.###.",
+"....######..###.",
+"....######......",
+"....##..##......",
+"...##....##.....",
+"..##......##....",
+"................"]},
+manticore:{
+a:[
+"..w.w.w.........",
+"..#####.........",
+".##.............",
+".#..............",
+".##.......#####.",
+"..##########x##.",
+".#############w.",
+".#############..",
+"..###########...",
+"..##.....###....",
+"..##.....#.#....",
+".###.....#.##...",
+"................",
+"................"],
+b:[
+".w.w.w..........",
+".#####..........",
+"##..............",
+"##..............",
+".##.......#####.",
+"..##########x##.",
+".#############w.",
+".#############..",
+"..###########...",
+"...##....###....",
+"..###....#.##...",
+"..##.......##...",
+"................",
+"................"],
+atk:[
+"..w.w.w.........",
+"..#####.........",
+".##.............",
+".#..........w...",
+".##.......#####.",
+"..##########x##w",
+".#############w.",
+".#############..",
+"..###########w..",
+"..##.....###....",
+"..##.....#.#....",
+".###.....#.##...",
+"................",
+"................"]},
+troll:{
+a:[
+"................",
+"....######......",
+"...#xx##x#......",
+"...########.....",
+"..##########....",
+".############...",
+"#############...",
+"#############...",
+"#.##########....",
+"..##########....",
+"..####..####....",
+"..####..####....",
+".#####..#####...",
+"................"],
+b:[
+"................",
+"....######......",
+"...#xx##x#......",
+"...########.....",
+"..##########....",
+".############...",
+"#############...",
+".############...",
+"..##########....",
+"..##########....",
+"..####..####....",
+"...####.####....",
+"..#####.#####...",
+"................"],
+atk:[
+"................",
+"....######......",
+"...#xx##x#......",
+"...########.....",
+"..##########....",
+".###########wwww",
+"############.###",
+"############.###",
+"..##########.###",
+"..##########....",
+"..####..####....",
+"..####..####....",
+".#####..#####...",
+"................"]},
+basilisk:{
+a:[
+"................",
+"................",
+"..........#####.",
+".........#xx###.",
+"..........####w.",
+"........####....",
+".....#####......",
+"..#####.........",
+".####...........",
+"..####..........",
+"....######......",
+"........######..",
+"..........####..",
+"................"],
+b:[
+"................",
+"................",
+"..........#####.",
+".........#xx###.",
+".........####w..",
+".......####.....",
+"....#####.......",
+"..####..........",
+".#####..........",
+"...####.........",
+".....######.....",
+".........#####..",
+"...........###..",
+"................"],
+atk:[
+"................",
+".........#####..",
+"........#xx####.",
+"........#####www",
+".........####...",
+"........####....",
+".....#####......",
+"..#####.........",
+".####...........",
+"..####..........",
+"....######......",
+"........######..",
+"..........####..",
+"................"]},
+};
+function drawSprite(kind,frame,x,y,px,sideColor,flash,mirror){
+  const sp=SPRITES[kind];
+  const map=frame==='atk'?sp.atk:(frame==='b'?sp.b:sp.a);
+  const h=map.length,w=map[0].length;
+  const ox=x-(w*px)/2, oy=y-(h*px)/2;
+  for(let r=0;r<h;r++){
+    const row=map[r];
+    for(let cix=0;cix<w;cix++){
+      const ch=row[cix];
+      if(ch==='.')continue;
+      let col;
+      if(flash)col='#ffffff';
+      else if(ch==='#')col=sideColor;
+      else if(ch==='x')col='#10131a';
+      else if(ch==='g')col='#c9a45a';
+      else if(ch==='w')col='#f6f2e4';
+      else if(ch==='m')col='#9fb0c4';
+      else continue;
+      const cx2=mirror>0?cix:(w-1-cix);
+      ctx.fillStyle=col;
+      ctx.fillRect(Math.round(ox+cx2*px),Math.round(oy+r*px),Math.ceil(px),Math.ceil(px));
+    }
+  }
+}
+
+const BOARD_SPR={};
+function boardSprite(kind,side){
+  const key=kind+'|'+side;
+  if(BOARD_SPR[key])return BOARD_SPR[key];
+  const map=SPRITES[kind].a, h=map.length, w=map[0].length;
+  const oc=document.createElement('canvas');oc.width=w;oc.height=h;
+  const o=oc.getContext('2d');
+  const sideColor=side==='light'?'#e7dfc9':'#a63a2e';
+  const mirror=side==='light'?1:-1;
+  for(let r=0;r<h;r++)for(let i=0;i<w;i++){
+    const ch=map[r][i];
+    if(ch==='.')continue;
+    let col;
+    if(ch==='#')col=sideColor;
+    else if(ch==='x')col='#10131a';
+    else if(ch==='g')col='#c9a45a';
+    else if(ch==='w')col='#f6f2e4';
+    else if(ch==='m')col='#9fb0c4';
+    else continue;
+    o.fillStyle=col;
+    o.fillRect(mirror>0?i:(w-1-i),r,1,1);
+  }
+  BOARD_SPR[key]={cv:oc,w,h};
+  return BOARD_SPR[key];
+}
 function drawGlyph(kind,side,px,py,s){
-  // creature silhouette — Light faces right, Dark faces left
-  ctx.save();ctx.translate(px,py);
-  drawCreature(kind,side==='light'?'#e7dfc9':'#a63a2e',s*1.15,0,0,0,side==='light'?1:-1);
-  ctx.restore();
+  // pixel sprite — Light faces right, Dark faces left.
+  // Baked once per kind+side into a 16x14 offscreen canvas: 36 pieces a frame is 8000+
+  // fillRects the hard way, one drawImage each the cheap way. Smoothing is off, so it
+  // still scales as hard pixels.
+  const bs=boardSprite(kind,side);
+  const pxSize=(s*2.6)/16;
+  const dw=Math.max(1,Math.round(bs.w*pxSize)), dh=Math.max(1,Math.round(bs.h*pxSize));
+  ctx.drawImage(bs.cv,Math.round(px-dw/2),Math.round(py-dh/2),dw,dh);
 }
 function drawArena(){
   ctx.save();
@@ -1226,41 +2128,87 @@ function drawArena(){
   for(let y=cell;y<H;y+=cell){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
   for(const p of A.pillars){ctx.fillStyle='#262a34';ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();ctx.strokeStyle='#3a3f4d';ctx.stroke();}
   for(const p of A.projectiles){
-    const col=p.kind==='dragon'?'#c65142':p.kind==='golem'?'#b8ab8f':p.kind==='djinn'?'#9fb0c4':p.kind==='unicorn'?'#f0e3a8':'#c9a45a';
+    const col=p.kind==='dragon'?'#c65142':p.kind==='golem'?'#b8ab8f':p.kind==='djinn'?'#9fb0c4':
+              p.kind==='unicorn'?'#f0e3a8':p.kind==='archer'?'#f6f2e4':p.kind==='valkyrie'?'#e7dfc9':
+              p.kind==='manticore'?'#c65142':'#c9a45a';
     ctx.fillStyle=col;
     ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();
     ctx.globalAlpha=0.25;
     ctx.beginPath();ctx.arc(p.x-p.vx*0.02,p.y-p.vy*0.02,p.r*1.8,0,7);ctx.fill();
     ctx.globalAlpha=1;
   }
+  for(let i=A.beams.length-1;i>=0;i--){
+    const b=A.beams[i];b.t-=1/60;
+    if(b.t<=0){A.beams.splice(i,1);continue;}
+    const a=b.t/b.max;
+    ctx.strokeStyle='rgba(198,81,66,'+(a*0.45)+')';ctx.lineWidth=2+a*10;
+    ctx.beginPath();ctx.moveTo(b.x1,b.y1);ctx.lineTo(b.x2,b.y2);ctx.stroke();
+    ctx.strokeStyle='rgba(246,242,228,'+(a*0.95)+')';ctx.lineWidth=1+a*3;
+    ctx.beginPath();ctx.moveTo(b.x1,b.y1);ctx.lineTo(b.x2,b.y2);ctx.stroke();
+    ctx.lineWidth=1;
+  }
   for(const c of [A.enemy,A.player]){
     const flashing=c.iframes>0&&Math.floor(c.iframes*20)%2===0;
     ctx.globalAlpha=flashing?0.45:1;
     const tNow=performance.now()/1000;
-    const idle=Math.hypot(c.vx,c.vy)<c.speed*0.15&&!A.over;
-    const bob=idle?Math.sin(tNow*Math.PI*2/3.6+(c.isPlayer?0:1.7))*2.5:0;
+    const moving2=Math.hypot(c.vx,c.vy)>=c.speed*0.15;
+    const bob=(!moving2&&!A.over)?Math.sin(tNow*Math.PI*2/3.6+(c.isPlayer?0:1.7))*2.5:0;
     const other2=c===A.player?A.enemy:A.player;
     const mirror=other2.x>=c.x?1:-1;   // face the enemy
-    ctx.save();ctx.translate(c.x,c.y+bob);
-    drawCreature(c.kind,
-      c.flash>0?'#ffffff':(c.side==='light'?'#e7dfc9':'#a63a2e'),
-      c.radius*1.55, c.walkPhase, Math.min(1,c.animT/0.35), tNow, mirror);
-    ctx.restore();
+    let frame='a';
+    if(c.animT>0)frame='atk';
+    else if(moving2)frame=Math.floor(c.walkPhase*0.22)%2===0?'a':'b';
+    const pxSize=(c.radius*3.0)/16;
+    drawSprite(c.kind,frame,c.x,c.y+bob,pxSize,
+      c.side==='light'?'#e7dfc9':'#a63a2e', c.flash>0, mirror);
     ctx.globalAlpha=1;
     const rt=renownTier(c.kind);
     if(rt>0){
       ctx.strokeStyle=TIER_COLORS[rt];ctx.lineWidth=rt===3?2.5:1.5;
       ctx.beginPath();ctx.arc(c.x,c.y,c.radius+12,0,7);ctx.stroke();ctx.lineWidth=1;
     }
-    if(c.kind==='knight'&&c.slashTimer>0){
+    if(KITS[c.kind].style==='melee'&&c.slashTimer>0){
+      const rr=KITS[c.kind].reach||62;
       ctx.save();ctx.translate(c.x,c.y);ctx.rotate(c.facing+Math.PI/2);
-      ctx.strokeStyle='rgba(255,255,255,0.85)';ctx.lineWidth=3;
-      ctx.beginPath();ctx.arc(0,0,62,-2.2,-0.9);ctx.stroke();ctx.lineWidth=1;ctx.restore();
+      if(c.kind==='gryphon'){
+        ctx.strokeStyle='rgba(246,242,228,0.8)';ctx.lineWidth=2;
+        for(const off of [-0.28,0,0.28]){ctx.beginPath();ctx.arc(0,0,rr+off*14,-2.0+off,-1.1+off);ctx.stroke();}
+      }else if(c.kind==='troll'){
+        ctx.strokeStyle='rgba(198,81,66,0.75)';ctx.lineWidth=6;
+        ctx.beginPath();ctx.arc(0,0,rr,-1.9,-1.2);ctx.stroke();
+      }else if(c.kind==='goblin'){
+        ctx.strokeStyle='rgba(230,224,206,0.7)';ctx.lineWidth=3;
+        ctx.beginPath();ctx.arc(0,0,rr,-2.3,-1.0);ctx.stroke();
+      }else{
+        ctx.strokeStyle='rgba(255,255,255,0.85)';ctx.lineWidth=3;
+        ctx.beginPath();ctx.arc(0,0,rr,-2.2,-0.9);ctx.stroke();
+      }
+      ctx.lineWidth=1;ctx.restore();
     }
-    if(c.kind==='banshee'&&c.pulseTimer>0){
-      const t=1-c.pulseTimer/0.3;
-      ctx.strokeStyle=`rgba(200,160,220,${(1-t)*0.7})`;ctx.lineWidth=2;
-      ctx.beginPath();ctx.arc(c.x,c.y,KITS.banshee.pulseR*t+c.radius,0,7);ctx.stroke();ctx.lineWidth=1;
+    if(KITS[c.kind].style==='pulse'&&c.pulseTimer>0){
+      const pk=KITS[c.kind], dur=pk.pulseT||0.3;
+      const t=1-c.pulseTimer/dur;
+      if(c.kind==='phoenix'){
+        ctx.strokeStyle=`rgba(201,164,90,${(1-t)*0.9})`;ctx.lineWidth=3;
+        ctx.beginPath();ctx.arc(c.x,c.y,pk.pulseR*t+c.radius,0,7);ctx.stroke();
+        ctx.strokeStyle=`rgba(246,242,228,${(1-t)*0.55})`;ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.arc(c.x,c.y,pk.pulseR*t*0.62+c.radius,0,7);ctx.stroke();
+      }else{
+        ctx.strokeStyle=`rgba(200,160,220,${(1-t)*0.7})`;ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(c.x,c.y,pk.pulseR*t+c.radius,0,7);ctx.stroke();
+      }
+      ctx.lineWidth=1;
+    }
+    if(c.gazeT>0){
+      // the telegraph: a dashed line on the locked angle, brightening as it winds up
+      const gk=KITS[c.kind], wind=gk.gazeWind||0.25, pr=1-c.gazeT/wind;
+      const reachLen=(gk.gazeLen||520)*(0.30+pr*0.70);
+      ctx.save();
+      ctx.setLineDash([5,9]);
+      ctx.strokeStyle=`rgba(246,242,228,${0.18+pr*0.5})`;ctx.lineWidth=1+pr*2;
+      ctx.beginPath();ctx.moveTo(c.x,c.y);
+      ctx.lineTo(c.x+Math.cos(c.gazeAng)*reachLen,c.y+Math.sin(c.gazeAng)*reachLen);
+      ctx.stroke();ctx.setLineDash([]);ctx.restore();
     }
     if(c.chargeTimer>0){
       ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=2;
